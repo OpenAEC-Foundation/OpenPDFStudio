@@ -35,6 +35,7 @@ export const ribbonContents = document.querySelectorAll('.ribbon-content');
 
 // Tool buttons
 export const toolSelect = document.getElementById('tool-select');
+export const toolHand = document.getElementById('tool-hand');
 export const toolHighlight = document.getElementById('tool-highlight');
 export const toolDraw = document.getElementById('tool-draw');
 export const toolLine = document.getElementById('tool-line');
@@ -135,6 +136,11 @@ export const annotationsListPanel = document.getElementById('annotations-list-pa
 export const annotationsListContent = document.getElementById('annotations-list-content');
 export const annotationsListFilter = document.getElementById('annotations-list-filter');
 export const annotationsListCount = document.getElementById('annotations-list-count');
+
+// Left panel elements
+export const leftPanel = document.getElementById('left-panel');
+export const thumbnailsContainer = document.getElementById('thumbnails-container');
+export const bookmarksContainer = document.getElementById('bookmarks-container');
 
 // Menu elements
 export const menuItems = document.querySelectorAll('.menu-item');

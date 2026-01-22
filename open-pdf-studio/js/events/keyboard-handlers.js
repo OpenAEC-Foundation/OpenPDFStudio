@@ -7,6 +7,7 @@ import { redrawAnnotations, redrawContinuous } from '../annotations/rendering.js
 import { openPDFFile } from '../pdf/loader.js';
 import { savePDFAs } from '../pdf/saver.js';
 import { toggleAnnotationsListPanel } from '../ui/annotations-list.js';
+import { toggleLeftPanel } from '../ui/left-panel.js';
 import { switchToTab } from '../ui/ribbon.js';
 
 // Handle keydown events
@@ -106,6 +107,9 @@ export function handleKeydown(e) {
     if (e.key === 'v' || e.key === 'V') {
       e.preventDefault();
       setTool('select');
+    } else if (e.key === 'h' || e.key === 'H') {
+      e.preventDefault();
+      setTool('hand');
     } else if (e.key === '1') {
       e.preventDefault();
       setTool('highlight');
@@ -134,6 +138,9 @@ export function handleKeydown(e) {
   if (e.key === 'F1') {
     e.preventDefault();
     document.getElementById('menu-shortcuts')?.click();
+  } else if (e.key === 'F9') {
+    e.preventDefault();
+    toggleLeftPanel();
   } else if (e.key === 'F12') {
     e.preventDefault();
     document.getElementById('menu-show-properties')?.click();

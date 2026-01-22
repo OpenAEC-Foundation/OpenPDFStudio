@@ -18,6 +18,7 @@ import { initContextMenus } from './ui/context-menus.js';
 import { initAnnotationsList } from './ui/annotations-list.js';
 import { initAllColorPalettes } from './ui/color-palette.js';
 import { updateAllStatus } from './ui/status-bar.js';
+import { initLeftPanel } from './ui/left-panel.js';
 
 // Event setup
 import { setupEventListeners } from './events/setup.js';
@@ -40,6 +41,7 @@ async function init() {
   initContextMenus();
   initAnnotationsList();
   initAllColorPalettes();
+  initLeftPanel();
 
   // Initialize preferences dialog drag
   initPreferencesDialogDrag();

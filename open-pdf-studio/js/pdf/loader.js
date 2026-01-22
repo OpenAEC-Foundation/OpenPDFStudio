@@ -6,6 +6,7 @@ import { renderPage, setViewMode } from './renderer.js';
 import { createAnnotation } from '../annotations/factory.js';
 import { generateImageId } from '../utils/helpers.js';
 import { colorArrayToHex } from '../utils/colors.js';
+import { generateThumbnails } from '../ui/left-panel.js';
 import * as pdfjsLib from '../../pdfjs/build/pdf.mjs';
 
 // Set worker source (path relative to HTML file, not this module)
@@ -47,6 +48,9 @@ export async function loadPDF(filePath) {
 
     // Render first page
     await setViewMode(state.viewMode);
+
+    // Generate thumbnails for left panel
+    generateThumbnails();
 
     // Update status bar
     updateAllStatus();

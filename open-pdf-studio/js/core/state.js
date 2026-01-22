@@ -40,6 +40,13 @@ export const state = {
   dragStartY: 0,
   originalAnnotation: null, // Store original state for drag operations
 
+  // Hand tool panning state
+  isPanning: false,
+  panStartX: 0,
+  panStartY: 0,
+  panScrollStartX: 0,
+  panScrollStartY: 0,
+
   // Image cache for loaded images
   imageCache: new Map(),
 

@@ -34,31 +34,41 @@ export function initMenus() {
       toggleMenu(menuName);
     });
 
-    // Close menu when mouse leaves the menu item
-    item.addEventListener('mouseleave', (e) => {
-      // Small delay to allow moving to dropdown
-      setTimeout(() => {
+    // Open menu on hover if another menu is already open
+    item.addEventListener('mouseenter', (e) => {
+      if (state.activeMenu && state.activeMenu !== item.dataset.menu) {
         const menuName = item.dataset.menu;
-        const dropdown = document.getElementById(`menu-${menuName}`);
-        // Check if mouse is not over the dropdown
-        if (dropdown && !dropdown.matches(':hover') && !item.matches(':hover')) {
-          closeAllMenus();
-        }
-      }, 100);
+        toggleMenu(menuName);
+      }
     });
+
   });
 
-  // Close menus when mouse leaves the dropdown
-  menuDropdowns.forEach(dropdown => {
-    dropdown.addEventListener('mouseleave', (e) => {
-      // Small delay to allow moving back to menu item
+  // Close menus when mouse leaves the entire menu bar area
+  const menuBar = document.querySelector('.title-bar-menus');
+  if (menuBar) {
+    menuBar.addEventListener('mouseleave', (e) => {
+      // Check if mouse moved to a dropdown
       setTimeout(() => {
-        const menuItem = dropdown.closest('.menu-item') ||
-                         document.querySelector(`[data-menu="${dropdown.id.replace('menu-', '')}"]`);
-        if (!dropdown.matches(':hover') && (!menuItem || !menuItem.matches(':hover'))) {
+        const isOverDropdown = Array.from(menuDropdowns).some(d => d.matches(':hover'));
+        const isOverMenuBar = menuBar.matches(':hover');
+        if (!isOverDropdown && !isOverMenuBar && state.activeMenu) {
           closeAllMenus();
         }
-      }, 100);
+      }, 150);
+    });
+  }
+
+  // Close menus when mouse leaves the dropdown (but not back to menu bar)
+  menuDropdowns.forEach(dropdown => {
+    dropdown.addEventListener('mouseleave', (e) => {
+      setTimeout(() => {
+        const isOverDropdown = Array.from(menuDropdowns).some(d => d.matches(':hover'));
+        const isOverMenuBar = menuBar && menuBar.matches(':hover');
+        if (!isOverDropdown && !isOverMenuBar) {
+          closeAllMenus();
+        }
+      }, 150);
     });
   });
 

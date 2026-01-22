@@ -12,6 +12,18 @@
       box-sizing: border-box;
     }
 
+    /* Force default cursor on all UI elements except canvas */
+    .title-bar, .title-bar *,
+    .ribbon-container, .ribbon-container *,
+    .status-bar, .status-bar *,
+    .left-panel, .left-panel *,
+    .properties-panel, .properties-panel *,
+    .annotations-list-panel, .annotations-list-panel *,
+    .menu-dropdown, .menu-dropdown *,
+    .context-menu, .context-menu * {
+      cursor: default !important;
+    }
+
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: #f3f3f3;
@@ -25,29 +37,43 @@
     .title-bar {
       background: linear-gradient(to bottom, #ffffff 0%, #f5f5f5 100%);
       border-bottom: 1px solid #d4d4d4;
-      padding: 8px 16px;
+      padding: 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      height: 40px;
+      height: 30px;
       flex-shrink: 0;
       -webkit-app-region: drag;
+      user-select: none;
+      cursor: default;
     }
 
     .title-bar-left {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 0;
+      height: 100%;
+      -webkit-app-region: no-drag;
+    }
+
+    .title-bar-center {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
     }
 
     .app-title {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       color: #333;
     }
 
     .file-name {
-      font-size: 12px;
+      font-size: 11px;
       color: #666;
     }
 
@@ -87,8 +113,8 @@
     }
 
     .window-btn {
-      width: 46px;
-      height: 32px;
+      width: 40px;
+      height: 30px;
       border: none;
       background: transparent;
       color: #333;
@@ -108,41 +134,38 @@
       color: white;
     }
 
-    /* Menu Bar */
-    /* Menu Bar - Dark VS Code-inspired theme */
-    .menu-bar {
-      background: #2d2d30;
-      border-bottom: 1px solid #3f3f46;
+    /* Menu Items in Title Bar */
+    .title-bar-menus {
       display: flex;
-      padding: 0 4px;
-      user-select: none;
-      flex-shrink: 0;
-      height: 28px;
       align-items: center;
+      height: 100%;
+      padding-left: 8px;
     }
 
     .menu-item {
       position: relative;
-      padding: 4px 10px;
+      padding: 6px 10px;
       cursor: pointer;
       transition: background 0.15s;
-      border-radius: 3px;
+      height: 100%;
+      display: flex;
+      align-items: center;
     }
 
     .menu-item:hover,
     .menu-item.active {
-      background: #3e3e42;
+      background: rgba(0, 0, 0, 0.08);
     }
 
     .menu-label {
-      font-size: 13px;
-      color: #cccccc;
+      font-size: 12px;
+      color: #444;
       font-weight: 400;
     }
 
     .menu-item:hover .menu-label,
     .menu-item.active .menu-label {
-      color: #ffffff;
+      color: #000;
     }
 
     .menu-dropdown {
@@ -212,16 +235,17 @@
 
     /* Ribbon Container - Dark VS Code-inspired theme */
     .ribbon-container {
-      background: linear-gradient(to bottom, #2d2d30 0%, #1e1e22 100%);
-      border-bottom: 1px solid #3f3f46;
+      background: linear-gradient(to bottom, #1e293b 0%, #172033 100%);
+      border-bottom: 1px solid #334155;
       flex-shrink: 0;
       user-select: none;
+      cursor: default;
     }
 
-    /* Ribbon Tabs - Dark VS Code-inspired theme */
+    /* Ribbon Tabs - Dark navy theme */
     .ribbon-tabs {
-      background: linear-gradient(to bottom, #2d2d30 0%, #252528 100%);
-      border-bottom: 1px solid #3f3f46;
+      background: linear-gradient(to bottom, #1e293b 0%, #1a2436 100%);
+      border-bottom: 1px solid #334155;
       display: flex;
       padding: 0 8px;
       gap: 2px;
@@ -235,7 +259,7 @@
       background: transparent;
       border: none;
       cursor: pointer;
-      color: #cccccc;
+      color: #94a3b8;
       font-weight: 500;
       border-radius: 4px 4px 0 0;
       transition: all 0.15s ease;
@@ -245,21 +269,21 @@
     }
 
     .ribbon-tab:hover {
-      background: #3e3e42;
+      background: #334155;
       color: #ffffff;
     }
 
     .ribbon-tab.active {
-      background: #1e1e22;
+      background: #172033;
       color: #ffffff;
-      border-color: #3f3f46;
-      border-bottom: 1px solid #1e1e22;
+      border-color: #334155;
+      border-bottom: 1px solid #172033;
       margin-bottom: -1px;
     }
 
-    /* Ribbon Content - Dark theme */
+    /* Ribbon Content - Dark navy theme */
     .ribbon-content {
-      background: #1e1e22;
+      background: #172033;
       padding: 4px 8px 0 8px;
       display: none;
       height: 94px;
@@ -281,7 +305,7 @@
       display: flex;
       flex-direction: column;
       padding: 0 8px;
-      border-right: 1px solid #3f3f46;
+      border-right: 1px solid #334155;
       min-width: 50px;
       height: 100%;
       margin-right: 8px;
@@ -294,7 +318,7 @@
 
     .ribbon-group-label {
       font-size: 9px;
-      color: #888888;
+      color: #64748b;
       text-align: center;
       font-weight: 500;
       padding: 2px 0;
@@ -339,13 +363,13 @@
     }
 
     .ribbon-btn:hover {
-      background: #3e3e42;
-      border-color: #5a5a5e;
+      background: #334155;
+      border-color: #475569;
     }
 
     .ribbon-btn.active {
-      background: #094771;
-      border-color: #007acc;
+      background: #3b82f6;
+      border-color: #60a5fa;
     }
 
     .ribbon-btn-icon {
@@ -360,7 +384,7 @@
     .ribbon-btn-icon svg {
       width: 24px;
       height: 24px;
-      stroke: #cccccc;
+      stroke: #94a3b8;
     }
 
     .ribbon-btn:hover .ribbon-btn-icon svg {
@@ -373,7 +397,7 @@
 
     .ribbon-btn-label {
       font-size: 11px;
-      color: #cccccc;
+      color: #94a3b8;
       text-align: center;
       line-height: 1.2;
       max-width: 52px;
@@ -527,6 +551,201 @@
       min-height: 0; /* Important for flex child overflow */
     }
 
+    /* Left Panel */
+    .left-panel {
+      width: 200px;
+      min-width: 200px;
+      background: #2d2d30;
+      border-right: 1px solid #3e3e42;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width 0.2s ease, min-width 0.2s ease;
+      cursor: default;
+    }
+
+    .left-panel.collapsed {
+      width: 36px;
+      min-width: 36px;
+    }
+
+    .left-panel-tabs {
+      display: flex;
+      background: #252526;
+      border-bottom: 1px solid #3e3e42;
+      flex-shrink: 0;
+    }
+
+    .left-panel.collapsed .left-panel-tabs {
+      flex-direction: column;
+    }
+
+    .left-panel-tab {
+      padding: 8px 12px;
+      font-size: 11px;
+      color: #858585;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .left-panel.collapsed .left-panel-tab {
+      padding: 10px;
+      justify-content: center;
+    }
+
+    .left-panel.collapsed .left-panel-tab span {
+      display: none;
+    }
+
+    .left-panel-tab:hover {
+      background: #3e3e42;
+      color: #cccccc;
+    }
+
+    .left-panel-tab.active {
+      background: #2d2d30;
+      color: #ffffff;
+      border-bottom: 2px solid #007acc;
+    }
+
+    .left-panel.collapsed .left-panel-tab.active {
+      border-bottom: none;
+      border-left: 2px solid #007acc;
+    }
+
+    .left-panel-tab svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .left-panel-content {
+      flex: 1;
+      overflow: hidden;
+      display: none;
+    }
+
+    .left-panel-content.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .left-panel.collapsed .left-panel-content {
+      display: none !important;
+    }
+
+    .left-panel-header {
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #cccccc;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: #2d2d30;
+      border-bottom: 1px solid #3e3e42;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .left-panel-toggle {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      width: 20px;
+      height: 20px;
+      background: #3e3e42;
+      border: none;
+      border-radius: 3px;
+      color: #cccccc;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .left-panel-toggle:hover {
+      background: #505050;
+    }
+
+    .left-panel-toggle svg {
+      width: 12px;
+      height: 12px;
+      transition: transform 0.2s;
+    }
+
+    .left-panel.collapsed .left-panel-toggle svg {
+      transform: rotate(180deg);
+    }
+
+    /* Thumbnails Panel */
+    .thumbnails-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .thumbnail-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px;
+      background: #252526;
+      border: 2px solid transparent;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .thumbnail-item:hover {
+      background: #3e3e42;
+    }
+
+    .thumbnail-item.active {
+      border-color: #007acc;
+      background: #37373d;
+    }
+
+    .thumbnail-canvas {
+      max-width: 100%;
+      background: white;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .thumbnail-label {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #cccccc;
+    }
+
+    .thumbnail-item.active .thumbnail-label {
+      color: #ffffff;
+    }
+
+    /* Bookmarks Panel */
+    .bookmarks-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .bookmarks-empty {
+      padding: 20px;
+      text-align: center;
+      color: #858585;
+      font-size: 12px;
+    }
+
     .main-view {
       flex: 1;
       display: flex;
@@ -629,7 +848,6 @@
       position: absolute;
       top: 0;
       left: 0;
-      cursor: crosshair;
     }
 
     .continuous-container canvas {
@@ -642,7 +860,6 @@
       position: absolute;
       top: 0;
       left: 0;
-      cursor: crosshair;
     }
 
     /* Properties Panel */
@@ -1859,16 +2076,18 @@
     /* Status Bar */
     /* Status Bar - Dark VS Code-inspired theme */
     .status-bar {
-      background: #007acc;
-      border-top: none;
+      background: #1e293b;
+      border-top: 1px solid #334155;
       padding: 0 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       height: 22px;
       font-size: 12px;
-      color: #ffffff;
+      color: #94a3b8;
       flex-shrink: 0;
+      user-select: none;
+      cursor: default;
     }
 
     .status-bar-left {
@@ -2023,14 +2242,14 @@
       margin: 0;
     }
 
-    /* About Dialog */
+    /* About Dialog - Dark Navy Theme */
     .about-overlay {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.6);
       display: none;
       align-items: center;
       justify-content: center;
@@ -2043,18 +2262,19 @@
     }
 
     .about-dialog {
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-      border-radius: 16px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
       box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
-      width: 420px;
+      width: 400px;
       overflow: hidden;
-      animation: aboutSlideIn 0.3s ease;
+      animation: aboutSlideIn 0.2s ease;
     }
 
     @keyframes aboutSlideIn {
       from {
         opacity: 0;
-        transform: scale(0.9) translateY(-20px);
+        transform: scale(0.95) translateY(-10px);
       }
       to {
         opacity: 1;
@@ -2063,98 +2283,101 @@
     }
 
     .about-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 32px 32px 24px;
+      background: #172033;
+      padding: 24px 24px 20px;
       text-align: center;
       position: relative;
+      border-bottom: 1px solid #334155;
     }
 
     .about-logo {
-      width: 72px;
-      height: 72px;
-      background: white;
-      border-radius: 16px;
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 16px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      margin: 0 auto 12px;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
     }
 
     .about-logo svg {
-      width: 44px;
-      height: 44px;
+      width: 36px;
+      height: 36px;
+      color: white;
     }
 
     .about-app-name {
-      font-size: 24px;
-      font-weight: 700;
-      color: white;
+      font-size: 20px;
+      font-weight: 600;
+      color: #f1f5f9;
       margin: 0 0 4px;
-      letter-spacing: -0.5px;
     }
 
     .about-version {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.8);
+      font-size: 12px;
+      color: #64748b;
       margin: 0;
     }
 
     .about-close-btn {
       position: absolute;
-      top: 12px;
-      right: 12px;
-      background: rgba(255, 255, 255, 0.2);
+      top: 8px;
+      right: 8px;
+      background: transparent;
       border: none;
-      color: white;
+      color: #64748b;
       width: 28px;
       height: 28px;
-      border-radius: 50%;
+      border-radius: 4px;
       cursor: pointer;
       font-size: 18px;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.2s;
+      transition: all 0.15s;
     }
 
     .about-close-btn:hover {
-      background: rgba(255, 255, 255, 0.3);
+      background: #334155;
+      color: #f1f5f9;
     }
 
     .about-content {
-      padding: 24px 32px 32px;
+      padding: 20px 24px 24px;
       color: #e2e8f0;
     }
 
     .about-tagline {
-      font-size: 14px;
-      color: #a5b4fc;
-      margin: 0 0 20px;
+      font-size: 13px;
+      color: #94a3b8;
+      margin: 0 0 16px;
       font-style: italic;
       text-align: center;
     }
 
     .about-description {
-      font-size: 13px;
+      font-size: 12px;
       line-height: 1.6;
-      color: #94a3b8;
-      margin: 0 0 24px;
+      color: #64748b;
+      margin: 0 0 20px;
       text-align: center;
     }
 
     .about-company {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 20px;
+      background: #172033;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 16px;
+      margin-bottom: 16px;
     }
 
     .about-company-name {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 600;
       color: #e2e8f0;
-      margin: 0 0 8px;
+      margin: 0 0 6px;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -2162,14 +2385,14 @@
 
     .about-company-name::before {
       content: '';
-      width: 4px;
-      height: 16px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      width: 3px;
+      height: 14px;
+      background: #3b82f6;
       border-radius: 2px;
     }
 
     .about-company-desc {
-      font-size: 12px;
+      font-size: 11px;
       color: #64748b;
       margin: 0;
       line-height: 1.5;
@@ -2177,45 +2400,45 @@
 
     .about-links {
       display: flex;
-      gap: 12px;
+      gap: 10px;
       justify-content: center;
     }
 
     .about-link {
-      background: rgba(102, 126, 234, 0.2);
-      border: 1px solid rgba(102, 126, 234, 0.3);
-      color: #a5b4fc;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 13px;
+      background: #334155;
+      border: 1px solid #475569;
+      color: #94a3b8;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 12px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.15s;
       text-decoration: none;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .about-link:hover {
-      background: rgba(102, 126, 234, 0.3);
-      border-color: rgba(102, 126, 234, 0.5);
-      color: white;
+      background: #475569;
+      border-color: #64748b;
+      color: #f1f5f9;
     }
 
     .about-link svg {
-      width: 16px;
-      height: 16px;
+      width: 14px;
+      height: 14px;
     }
 
     .about-footer {
       text-align: center;
-      padding-top: 16px;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 12px;
+      border-top: 1px solid #334155;
       margin-top: 8px;
     }
 
     .about-copyright {
-      font-size: 11px;
+      font-size: 10px;
       color: #475569;
       margin: 0;
     }
@@ -2270,6 +2493,180 @@
   <!-- Title Bar -->
   <div class="title-bar">
     <div class="title-bar-left">
+      <div class="title-bar-menus">
+        <div class="menu-item" data-menu="file">
+          <span class="menu-label">File</span>
+          <div class="menu-dropdown" id="menu-file">
+            <div class="menu-option" id="menu-open">
+              <span class="menu-option-label">Open...</span>
+              <span class="menu-option-shortcut">Ctrl+O</span>
+            </div>
+            <div class="menu-option" id="menu-save">
+              <span class="menu-option-label">Save</span>
+              <span class="menu-option-shortcut">Ctrl+S</span>
+            </div>
+            <div class="menu-option" id="menu-save-as">
+              <span class="menu-option-label">Save As...</span>
+              <span class="menu-option-shortcut">Ctrl+Shift+S</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-option" id="menu-exit">
+              <span class="menu-option-label">Exit</span>
+              <span class="menu-option-shortcut">Alt+F4</span>
+            </div>
+          </div>
+        </div>
+        <div class="menu-item" data-menu="edit">
+          <span class="menu-label">Edit</span>
+          <div class="menu-dropdown" id="menu-edit">
+            <div class="menu-option" id="menu-undo">
+              <span class="menu-option-label">Undo</span>
+              <span class="menu-option-shortcut">Ctrl+Z</span>
+            </div>
+            <div class="menu-option" id="menu-redo">
+              <span class="menu-option-label">Redo</span>
+              <span class="menu-option-shortcut">Ctrl+Y</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-option" id="menu-delete">
+              <span class="menu-option-label">Delete</span>
+              <span class="menu-option-shortcut">Delete</span>
+            </div>
+            <div class="menu-option" id="menu-clear-page">
+              <span class="menu-option-label">Clear Page Annotations</span>
+              <span class="menu-option-shortcut">Ctrl+Shift+C</span>
+            </div>
+            <div class="menu-option" id="menu-clear-all">
+              <span class="menu-option-label">Clear All Annotations</span>
+              <span class="menu-option-shortcut"></span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-option" id="menu-select-all">
+              <span class="menu-option-label">Select All</span>
+              <span class="menu-option-shortcut">Ctrl+A</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-option" id="menu-preferences">
+              <span class="menu-option-label">Preferences...</span>
+              <span class="menu-option-shortcut">Ctrl+,</span>
+            </div>
+          </div>
+        </div>
+        <div class="menu-item" data-menu="view">
+          <span class="menu-label">View</span>
+          <div class="menu-dropdown" id="menu-view">
+            <div class="menu-option" id="menu-zoom-in">
+              <span class="menu-option-label">Zoom In</span>
+              <span class="menu-option-shortcut">Ctrl++</span>
+            </div>
+            <div class="menu-option" id="menu-zoom-out">
+              <span class="menu-option-label">Zoom Out</span>
+              <span class="menu-option-shortcut">Ctrl+-</span>
+            </div>
+            <div class="menu-option" id="menu-actual-size">
+              <span class="menu-option-label">Actual Size</span>
+              <span class="menu-option-shortcut">Ctrl+0</span>
+            </div>
+            <div class="menu-option" id="menu-fit-width">
+              <span class="menu-option-label">Fit Width</span>
+              <span class="menu-option-shortcut">Ctrl+1</span>
+            </div>
+            <div class="menu-option" id="menu-fit-page">
+              <span class="menu-option-label">Fit Page</span>
+              <span class="menu-option-shortcut">Ctrl+2</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-option" id="menu-rotate-left">
+              <span class="menu-option-label">Rotate Left</span>
+              <span class="menu-option-shortcut">Ctrl+[</span>
+            </div>
+            <div class="menu-option" id="menu-rotate-right">
+              <span class="menu-option-label">Rotate Right</span>
+              <span class="menu-option-shortcut">Ctrl+]</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-option" id="menu-single-page">
+              <span class="menu-option-label">Single Page</span>
+              <span class="menu-option-shortcut"></span>
+            </div>
+            <div class="menu-option" id="menu-continuous">
+              <span class="menu-option-label">Continuous</span>
+              <span class="menu-option-shortcut"></span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-option" id="menu-show-left-panel">
+              <span class="menu-option-label">Navigation Panel</span>
+              <span class="menu-option-shortcut">F9</span>
+            </div>
+            <div class="menu-option" id="menu-show-properties">
+              <span class="menu-option-label">Properties Panel</span>
+              <span class="menu-option-shortcut">F12</span>
+            </div>
+            <div class="menu-option" id="menu-show-annotations-list">
+              <span class="menu-option-label">Annotations List</span>
+              <span class="menu-option-shortcut">F11</span>
+            </div>
+          </div>
+        </div>
+        <div class="menu-item" data-menu="tools">
+          <span class="menu-label">Tools</span>
+          <div class="menu-dropdown" id="menu-tools">
+            <div class="menu-option" id="menu-tool-select">
+              <span class="menu-option-label">Select Tool</span>
+              <span class="menu-option-shortcut">V</span>
+            </div>
+            <div class="menu-option" id="menu-tool-hand">
+              <span class="menu-option-label">Hand Tool</span>
+              <span class="menu-option-shortcut">H</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-option" id="menu-tool-highlight">
+              <span class="menu-option-label">Highlight</span>
+              <span class="menu-option-shortcut">1</span>
+            </div>
+            <div class="menu-option" id="menu-tool-draw">
+              <span class="menu-option-label">Freehand</span>
+              <span class="menu-option-shortcut">2</span>
+            </div>
+            <div class="menu-option" id="menu-tool-line">
+              <span class="menu-option-label">Line</span>
+              <span class="menu-option-shortcut">3</span>
+            </div>
+            <div class="menu-option" id="menu-tool-box">
+              <span class="menu-option-label">Rectangle</span>
+              <span class="menu-option-shortcut">4</span>
+            </div>
+            <div class="menu-option" id="menu-tool-circle">
+              <span class="menu-option-label">Ellipse</span>
+              <span class="menu-option-shortcut">5</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-option" id="menu-tool-text">
+              <span class="menu-option-label">Text Box</span>
+              <span class="menu-option-shortcut">T</span>
+            </div>
+            <div class="menu-option" id="menu-tool-comment">
+              <span class="menu-option-label">Note</span>
+              <span class="menu-option-shortcut">N</span>
+            </div>
+          </div>
+        </div>
+        <div class="menu-item" data-menu="help">
+          <span class="menu-label">Help</span>
+          <div class="menu-dropdown" id="menu-help">
+            <div class="menu-option" id="menu-about">
+              <span class="menu-option-label">About OpenPDFStudio</span>
+              <span class="menu-option-shortcut"></span>
+            </div>
+            <div class="menu-option" id="menu-shortcuts">
+              <span class="menu-option-label">Keyboard Shortcuts</span>
+              <span class="menu-option-shortcut">F1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="title-bar-center">
       <span class="app-title">OpenPDFStudio</span>
       <span class="file-name" id="file-info"></span>
     </div>
@@ -2278,185 +2675,11 @@
         <svg width="10" height="1" viewBox="0 0 10 1"><rect width="10" height="1" fill="currentColor"/></svg>
       </button>
       <button class="window-btn" id="btn-maximize" title="Maximize">
-        <svg width="10" height="10" viewBox="0 0 10 10"><rect width="10" height="10" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+        <svg width="10" height="10" viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
       </button>
       <button class="window-btn window-btn-close" id="btn-close" title="Close">
         <svg width="10" height="10" viewBox="0 0 10 10"><line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" stroke-width="1.2"/><line x1="10" y1="0" x2="0" y2="10" stroke="currentColor" stroke-width="1.2"/></svg>
       </button>
-    </div>
-  </div>
-
-  <!-- Menu Bar -->
-  <div class="menu-bar">
-    <div class="menu-item" data-menu="file">
-      <span class="menu-label">File</span>
-      <div class="menu-dropdown" id="menu-file">
-        <div class="menu-option" id="menu-open">
-          <span class="menu-option-label">Open...</span>
-          <span class="menu-option-shortcut">Ctrl+O</span>
-        </div>
-        <div class="menu-option" id="menu-save">
-          <span class="menu-option-label">Save</span>
-          <span class="menu-option-shortcut">Ctrl+S</span>
-        </div>
-        <div class="menu-option" id="menu-save-as">
-          <span class="menu-option-label">Save As...</span>
-          <span class="menu-option-shortcut">Ctrl+Shift+S</span>
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-option" id="menu-exit">
-          <span class="menu-option-label">Exit</span>
-          <span class="menu-option-shortcut">Alt+F4</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="menu-item" data-menu="edit">
-      <span class="menu-label">Edit</span>
-      <div class="menu-dropdown" id="menu-edit">
-        <div class="menu-option" id="menu-undo">
-          <span class="menu-option-label">Undo</span>
-          <span class="menu-option-shortcut">Ctrl+Z</span>
-        </div>
-        <div class="menu-option" id="menu-redo">
-          <span class="menu-option-label">Redo</span>
-          <span class="menu-option-shortcut">Ctrl+Y</span>
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-option" id="menu-delete">
-          <span class="menu-option-label">Delete</span>
-          <span class="menu-option-shortcut">Delete</span>
-        </div>
-        <div class="menu-option" id="menu-clear-page">
-          <span class="menu-option-label">Clear Page Annotations</span>
-          <span class="menu-option-shortcut">Ctrl+Shift+C</span>
-        </div>
-        <div class="menu-option" id="menu-clear-all">
-          <span class="menu-option-label">Clear All Annotations</span>
-          <span class="menu-option-shortcut"></span>
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-option" id="menu-select-all">
-          <span class="menu-option-label">Select All</span>
-          <span class="menu-option-shortcut">Ctrl+A</span>
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-option" id="menu-preferences">
-          <span class="menu-option-label">Preferences...</span>
-          <span class="menu-option-shortcut">Ctrl+,</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="menu-item" data-menu="view">
-      <span class="menu-label">View</span>
-      <div class="menu-dropdown" id="menu-view">
-        <div class="menu-option" id="menu-zoom-in">
-          <span class="menu-option-label">Zoom In</span>
-          <span class="menu-option-shortcut">Ctrl++</span>
-        </div>
-        <div class="menu-option" id="menu-zoom-out">
-          <span class="menu-option-label">Zoom Out</span>
-          <span class="menu-option-shortcut">Ctrl+-</span>
-        </div>
-        <div class="menu-option" id="menu-actual-size">
-          <span class="menu-option-label">Actual Size</span>
-          <span class="menu-option-shortcut">Ctrl+0</span>
-        </div>
-        <div class="menu-option" id="menu-fit-width">
-          <span class="menu-option-label">Fit Width</span>
-          <span class="menu-option-shortcut">Ctrl+1</span>
-        </div>
-        <div class="menu-option" id="menu-fit-page">
-          <span class="menu-option-label">Fit Page</span>
-          <span class="menu-option-shortcut">Ctrl+2</span>
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-option" id="menu-rotate-left">
-          <span class="menu-option-label">Rotate Left</span>
-          <span class="menu-option-shortcut">Ctrl+[</span>
-        </div>
-        <div class="menu-option" id="menu-rotate-right">
-          <span class="menu-option-label">Rotate Right</span>
-          <span class="menu-option-shortcut">Ctrl+]</span>
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-option" id="menu-single-page">
-          <span class="menu-option-label">Single Page</span>
-          <span class="menu-option-shortcut"></span>
-        </div>
-        <div class="menu-option" id="menu-continuous">
-          <span class="menu-option-label">Continuous</span>
-          <span class="menu-option-shortcut"></span>
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-option" id="menu-show-properties">
-          <span class="menu-option-label">Properties Panel</span>
-          <span class="menu-option-shortcut">F12</span>
-        </div>
-        <div class="menu-option" id="menu-show-annotations-list">
-          <span class="menu-option-label">Annotations List</span>
-          <span class="menu-option-shortcut">F11</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="menu-item" data-menu="tools">
-      <span class="menu-label">Tools</span>
-      <div class="menu-dropdown" id="menu-tools">
-        <div class="menu-option" id="menu-tool-select">
-          <span class="menu-option-label">Select Tool</span>
-          <span class="menu-option-shortcut">V</span>
-        </div>
-        <div class="menu-option" id="menu-tool-hand">
-          <span class="menu-option-label">Hand Tool</span>
-          <span class="menu-option-shortcut">H</span>
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-option" id="menu-tool-highlight">
-          <span class="menu-option-label">Highlight</span>
-          <span class="menu-option-shortcut">1</span>
-        </div>
-        <div class="menu-option" id="menu-tool-draw">
-          <span class="menu-option-label">Freehand</span>
-          <span class="menu-option-shortcut">2</span>
-        </div>
-        <div class="menu-option" id="menu-tool-line">
-          <span class="menu-option-label">Line</span>
-          <span class="menu-option-shortcut">3</span>
-        </div>
-        <div class="menu-option" id="menu-tool-box">
-          <span class="menu-option-label">Rectangle</span>
-          <span class="menu-option-shortcut">4</span>
-        </div>
-        <div class="menu-option" id="menu-tool-circle">
-          <span class="menu-option-label">Ellipse</span>
-          <span class="menu-option-shortcut">5</span>
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-option" id="menu-tool-text">
-          <span class="menu-option-label">Text Box</span>
-          <span class="menu-option-shortcut">T</span>
-        </div>
-        <div class="menu-option" id="menu-tool-comment">
-          <span class="menu-option-label">Note</span>
-          <span class="menu-option-shortcut">N</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="menu-item" data-menu="help">
-      <span class="menu-label">Help</span>
-      <div class="menu-dropdown" id="menu-help">
-        <div class="menu-option" id="menu-about">
-          <span class="menu-option-label">About OpenPDFStudio</span>
-          <span class="menu-option-shortcut"></span>
-        </div>
-        <div class="menu-option" id="menu-shortcuts">
-          <span class="menu-option-label">Keyboard Shortcuts</span>
-          <span class="menu-option-shortcut">F1</span>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -2919,6 +3142,53 @@
 
   <!-- Main Content -->
   <div class="content">
+    <!-- Left Panel -->
+    <div class="left-panel" id="left-panel">
+      <div class="left-panel-tabs">
+        <button class="left-panel-tab active" data-panel="thumbnails" title="Page Thumbnails">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="9" rx="1"/>
+            <rect x="14" y="3" width="7" height="9" rx="1"/>
+            <rect x="3" y="15" width="7" height="6" rx="1"/>
+            <rect x="14" y="15" width="7" height="6" rx="1"/>
+          </svg>
+          <span>Pages</span>
+        </button>
+        <button class="left-panel-tab" data-panel="bookmarks" title="Bookmarks">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span>Bookmarks</span>
+        </button>
+      </div>
+
+      <!-- Thumbnails Panel -->
+      <div class="left-panel-content active" id="thumbnails-panel">
+        <div class="left-panel-header">
+          <span>Page Thumbnails</span>
+        </div>
+        <div class="thumbnails-container" id="thumbnails-container">
+          <!-- Thumbnails will be dynamically added here -->
+        </div>
+      </div>
+
+      <!-- Bookmarks Panel -->
+      <div class="left-panel-content" id="bookmarks-panel">
+        <div class="left-panel-header">
+          <span>Bookmarks</span>
+        </div>
+        <div class="bookmarks-container" id="bookmarks-container">
+          <div class="bookmarks-empty">No bookmarks in this document</div>
+        </div>
+      </div>
+
+      <button class="left-panel-toggle" id="left-panel-toggle" title="Toggle Panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+    </div>
+
     <div class="main-view">
       <div id="placeholder">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -4069,7 +4339,7 @@
           </svg>
         </div>
         <h1 class="about-app-name">OpenPDFStudio</h1>
-        <p class="about-version">Version 1.0.5</p>
+        <p class="about-version">Version 1.0.1</p>
       </div>
       <div class="about-content">
         <p class="about-tagline">IT Without Chains</p>

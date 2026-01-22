@@ -14,7 +14,7 @@ if (process.platform === 'linux' && process.getuid && process.getuid() === 0) {
 }
 
 // Development: auto-load this PDF on startup (set to null for production)
-const DEV_AUTO_LOAD_PDF = null;
+const DEV_AUTO_LOAD_PDF = 'D:\\Repos\\(Impertio)\\PDF Editor\\test pdf\\A First Course in the Finite Element Method - Daryl L. Logan - 5th Edition.pdf';
 
 function createWindow() {
   // Remove default menu
@@ -24,6 +24,7 @@ function createWindow() {
     width: 1200,
     height: 800,
     frame: false,
+    roundedCorners: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: false,

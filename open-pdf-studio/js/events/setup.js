@@ -2,7 +2,7 @@ import { state } from '../core/state.js';
 import {
   annotationCanvas, pdfContainer, placeholder,
   prevPageBtn, nextPageBtn, zoomInBtn, zoomOutBtn, zoomLevel, pageInput,
-  toolSelect, toolHighlight, toolDraw, toolLine, toolArrow, toolCircle,
+  toolSelect, toolHand, toolHighlight, toolDraw, toolLine, toolArrow, toolCircle,
   toolBox, toolComment, toolText, toolPolygon, toolCloud,
   toolPolyline, toolTextbox, toolCallout, toolClear, toolUndo,
   propColor, propLineWidth, propText, propFontSize, propDelete, propClose,
@@ -26,6 +26,7 @@ import { closeAllMenus } from '../ui/menus.js';
 import { showPreferencesDialog, hidePreferencesDialog, savePreferencesFromDialog, resetPreferencesToDefaults } from '../core/preferences.js';
 import { showAboutDialog } from '../ui/dialogs.js';
 import { toggleAnnotationsListPanel } from '../ui/annotations-list.js';
+import { toggleLeftPanel } from '../ui/left-panel.js';
 
 // Setup window control buttons (minimize, maximize, close)
 function setupWindowControls() {
@@ -76,6 +77,7 @@ export function setupEventListeners() {
 // Setup tool button click handlers
 function setupToolButtons() {
   toolSelect?.addEventListener('click', () => setTool('select'));
+  toolHand?.addEventListener('click', () => setTool('hand'));
   toolHighlight?.addEventListener('click', () => setTool('highlight'));
   toolDraw?.addEventListener('click', () => setTool('draw'));
   toolLine?.addEventListener('click', () => setTool('line'));
@@ -467,6 +469,11 @@ function setupMenuEvents() {
     setViewMode('continuous');
   });
 
+  document.getElementById('menu-show-left-panel')?.addEventListener('click', () => {
+    closeAllMenus();
+    toggleLeftPanel();
+  });
+
   document.getElementById('menu-show-properties')?.addEventListener('click', () => {
     closeAllMenus();
     if (propertiesPanel?.classList.contains('visible')) {
@@ -485,6 +492,11 @@ function setupMenuEvents() {
   document.getElementById('menu-tool-select')?.addEventListener('click', () => {
     closeAllMenus();
     setTool('select');
+  });
+
+  document.getElementById('menu-tool-hand')?.addEventListener('click', () => {
+    closeAllMenus();
+    setTool('hand');
   });
 
   document.getElementById('menu-tool-highlight')?.addEventListener('click', () => {

@@ -1,5 +1,5 @@
 import { state } from '../core/state.js';
-import { annotationCanvas, annotationCtx, colorPicker, lineWidth } from '../ui/dom-elements.js';
+import { annotationCanvas, annotationCtx, colorPicker, lineWidth, pdfContainer } from '../ui/dom-elements.js';
 import { createAnnotation, cloneAnnotation } from '../annotations/factory.js';
 import { findAnnotationAt } from '../annotations/geometry.js';
 import { findHandleAt, getCursorForHandle } from '../annotations/handles.js';
@@ -22,6 +22,26 @@ export function handleMouseDown(e) {
   state.startY = y;
   state.dragStartX = x;
   state.dragStartY = y;
+
+  // Handle hand tool (panning)
+  if (state.currentTool === 'hand') {
+    const scrollContainer = getScrollContainer();
+    state.isPanning = true;
+    state.panStartX = e.clientX;
+    state.panStartY = e.clientY;
+    state.panScrollStartX = scrollContainer ? scrollContainer.scrollLeft : 0;
+    state.panScrollStartY = scrollContainer ? scrollContainer.scrollTop : 0;
+    // Set grabbing cursor on all relevant elements
+    document.body.style.cursor = 'grabbing';
+    pdfContainer.style.cursor = 'grabbing';
+    if (annotationCanvas) annotationCanvas.style.cursor = 'grabbing';
+    document.querySelectorAll('.annotation-canvas').forEach(c => c.style.cursor = 'grabbing');
+    // Add document-level listeners for smooth panning
+    document.addEventListener('mousemove', handlePanMove);
+    document.addEventListener('mouseup', handlePanEnd);
+    e.preventDefault();
+    return;
+  }
 
   // Handle select tool
   if (state.currentTool === 'select') {
@@ -99,9 +119,41 @@ export function handleMouseDown(e) {
   }
 }
 
+// Get the scrollable container (main-view, not pdf-container)
+function getScrollContainer() {
+  return document.querySelector('.main-view');
+}
+
+// Document-level pan move handler (for smooth panning outside canvas)
+function handlePanMove(e) {
+  if (!state.isPanning) return;
+  const scrollContainer = getScrollContainer();
+  if (!scrollContainer) return;
+  const deltaX = e.clientX - state.panStartX;
+  const deltaY = e.clientY - state.panStartY;
+  scrollContainer.scrollLeft = state.panScrollStartX - deltaX;
+  scrollContainer.scrollTop = state.panScrollStartY - deltaY;
+}
+
+// Document-level pan end handler
+function handlePanEnd(e) {
+  if (!state.isPanning) return;
+  state.isPanning = false;
+  // Reset cursors back to grab
+  document.body.style.cursor = '';
+  pdfContainer.style.cursor = '';
+  if (annotationCanvas) annotationCanvas.style.cursor = 'grab';
+  document.querySelectorAll('.annotation-canvas').forEach(c => c.style.cursor = 'grab');
+  document.removeEventListener('mousemove', handlePanMove);
+  document.removeEventListener('mouseup', handlePanEnd);
+}
+
 // Mouse move handler for single page mode
 export function handleMouseMove(e) {
   if (!state.pdfDoc || !annotationCanvas) return;
+
+  // Skip if panning (handled by document-level listener)
+  if (state.isPanning) return;
 
   const rect = annotationCanvas.getBoundingClientRect();
   const currentX = (e.clientX - rect.left) / state.scale;
@@ -521,6 +573,9 @@ function drawShapePreview(currentX, currentY, e) {
 
 // Mouse up handler for single page mode
 export function handleMouseUp(e) {
+  // Hand tool panning is handled by document-level listener (handlePanEnd)
+  if (state.isPanning) return;
+
   // Handle end of dragging/resizing
   if (state.isDragging || state.isResizing) {
     state.isDragging = false;
@@ -770,6 +825,24 @@ export function handleContinuousMouseDown(e, pageNum) {
   state.activeContinuousPage = pageNum;
   state.currentPage = pageNum;
 
+  // Handle hand tool (panning) - use same document-level handlers as single page mode
+  if (state.currentTool === 'hand') {
+    const scrollContainer = getScrollContainer();
+    state.isPanning = true;
+    state.panStartX = e.clientX;
+    state.panStartY = e.clientY;
+    state.panScrollStartX = scrollContainer ? scrollContainer.scrollLeft : 0;
+    state.panScrollStartY = scrollContainer ? scrollContainer.scrollTop : 0;
+    // Set grabbing cursor on all relevant elements
+    document.body.style.cursor = 'grabbing';
+    pdfContainer.style.cursor = 'grabbing';
+    document.querySelectorAll('.annotation-canvas').forEach(c => c.style.cursor = 'grabbing');
+    document.addEventListener('mousemove', handlePanMove);
+    document.addEventListener('mouseup', handlePanEnd);
+    e.preventDefault();
+    return;
+  }
+
   if (state.currentTool === 'select') {
     const clickedAnnotation = findAnnotationAt(state.startX, state.startY);
     if (clickedAnnotation) {
@@ -794,6 +867,9 @@ export function handleContinuousMouseDown(e, pageNum) {
 }
 
 export function handleContinuousMouseMove(e, pageNum) {
+  // Hand tool panning is handled by document-level listener
+  if (state.isPanning) return;
+
   if (!state.isDrawing) return;
   if (state.activeContinuousPage !== pageNum) return;
   if (!state.activeContinuousCanvas) return;
@@ -846,6 +922,9 @@ export function handleContinuousMouseMove(e, pageNum) {
 }
 
 export function handleContinuousMouseUp(e, pageNum) {
+  // Hand tool panning is handled by document-level listener
+  if (state.isPanning) return;
+
   if (!state.isDrawing || state.activeContinuousPage !== pageNum) return;
 
   const rect = state.activeContinuousCanvas.getBoundingClientRect();

@@ -1,13 +1,37 @@
 import { state } from '../core/state.js';
 import {
-  annotationCanvas,
-  toolSelect, toolHighlight, toolDraw, toolLine, toolArrow, toolCircle,
+  annotationCanvas, pdfContainer,
+  toolSelect, toolHand, toolHighlight, toolDraw, toolLine, toolArrow, toolCircle,
   toolBox, toolComment, toolText, toolPolygon, toolCloud,
   toolPolyline, toolTextbox, toolCallout
 } from '../ui/dom-elements.js';
 import { hideProperties } from '../ui/properties-panel.js';
 import { redrawAnnotations } from '../annotations/rendering.js';
 import { updateStatusTool } from '../ui/status-bar.js';
+
+// Get cursor for a given tool
+export function getCursorForTool(tool = state.currentTool) {
+  switch (tool) {
+    case 'select':
+      return 'default';
+    case 'hand':
+      return 'grab';
+    case 'text':
+      return 'text';
+    default:
+      return 'crosshair';
+  }
+}
+
+// Helper to set cursor on all annotation canvases and container
+function setAllCanvasCursors(cursor) {
+  if (annotationCanvas) annotationCanvas.style.cursor = cursor;
+  if (pdfContainer) pdfContainer.style.cursor = cursor;
+  // Also set cursor on continuous view canvases
+  document.querySelectorAll('.annotation-canvas').forEach(canvas => {
+    canvas.style.cursor = cursor;
+  });
+}
 
 // Set current tool
 export function setTool(tool) {
@@ -26,7 +50,7 @@ export function setTool(tool) {
   }
 
   // Update UI - remove active state from all tool buttons
-  [toolSelect, toolHighlight, toolDraw, toolLine, toolArrow, toolCircle, toolBox, toolComment, toolText].forEach(btn => {
+  [toolSelect, toolHand, toolHighlight, toolDraw, toolLine, toolArrow, toolCircle, toolBox, toolComment, toolText].forEach(btn => {
     if (btn) btn.classList.remove('active');
   });
   // Also remove from optional buttons
@@ -37,62 +61,66 @@ export function setTool(tool) {
   switch (tool) {
     case 'select':
       if (toolSelect) toolSelect.classList.add('active');
-      if (annotationCanvas) annotationCanvas.style.cursor = 'default';
+      setAllCanvasCursors('default');
+      break;
+    case 'hand':
+      if (toolHand) toolHand.classList.add('active');
+      setAllCanvasCursors('grab');
       break;
     case 'highlight':
       if (toolHighlight) toolHighlight.classList.add('active');
-      if (annotationCanvas) annotationCanvas.style.cursor = 'crosshair';
+      setAllCanvasCursors('crosshair');
       break;
     case 'draw':
       if (toolDraw) toolDraw.classList.add('active');
-      if (annotationCanvas) annotationCanvas.style.cursor = 'crosshair';
+      setAllCanvasCursors('crosshair');
       break;
     case 'line':
       if (toolLine) toolLine.classList.add('active');
-      if (annotationCanvas) annotationCanvas.style.cursor = 'crosshair';
+      setAllCanvasCursors('crosshair');
       break;
     case 'arrow':
       if (toolArrow) toolArrow.classList.add('active');
-      if (annotationCanvas) annotationCanvas.style.cursor = 'crosshair';
+      setAllCanvasCursors('crosshair');
       break;
     case 'circle':
       if (toolCircle) toolCircle.classList.add('active');
-      if (annotationCanvas) annotationCanvas.style.cursor = 'crosshair';
+      setAllCanvasCursors('crosshair');
       break;
     case 'box':
       if (toolBox) toolBox.classList.add('active');
-      if (annotationCanvas) annotationCanvas.style.cursor = 'crosshair';
+      setAllCanvasCursors('crosshair');
       break;
     case 'polygon':
       if (toolPolygon) toolPolygon.classList.add('active');
-      if (annotationCanvas) annotationCanvas.style.cursor = 'crosshair';
+      setAllCanvasCursors('crosshair');
       break;
     case 'cloud':
       if (toolCloud) toolCloud.classList.add('active');
-      if (annotationCanvas) annotationCanvas.style.cursor = 'crosshair';
+      setAllCanvasCursors('crosshair');
       break;
     case 'polyline':
       if (toolPolyline) toolPolyline.classList.add('active');
-      if (annotationCanvas) annotationCanvas.style.cursor = 'crosshair';
+      setAllCanvasCursors('crosshair');
       break;
     case 'textbox':
       if (toolTextbox) toolTextbox.classList.add('active');
-      if (annotationCanvas) annotationCanvas.style.cursor = 'crosshair';
+      setAllCanvasCursors('crosshair');
       break;
     case 'callout':
       if (toolCallout) toolCallout.classList.add('active');
-      if (annotationCanvas) annotationCanvas.style.cursor = 'crosshair';
+      setAllCanvasCursors('crosshair');
       break;
     case 'comment':
       if (toolComment) toolComment.classList.add('active');
-      if (annotationCanvas) annotationCanvas.style.cursor = 'crosshair';
+      setAllCanvasCursors('crosshair');
       break;
     case 'text':
       if (toolText) toolText.classList.add('active');
-      if (annotationCanvas) annotationCanvas.style.cursor = 'text';
+      setAllCanvasCursors('text');
       break;
     default:
-      if (annotationCanvas) annotationCanvas.style.cursor = 'default';
+      setAllCanvasCursors('default');
   }
 
   // Update status bar

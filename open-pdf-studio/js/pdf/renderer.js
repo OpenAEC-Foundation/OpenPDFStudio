@@ -6,6 +6,8 @@ import {
 import { redrawAnnotations, renderAnnotationsForPage } from '../annotations/rendering.js';
 import { updateAllStatus } from '../ui/status-bar.js';
 import { hideProperties } from '../ui/properties-panel.js';
+import { getCursorForTool } from '../tools/manager.js';
+import { updateActiveThumbnail } from '../ui/left-panel.js';
 
 // Track current render task to cancel if needed
 let currentRenderTask = null;
@@ -113,7 +115,7 @@ export async function renderContinuous() {
     annotationCanvasEl.style.position = 'absolute';
     annotationCanvasEl.style.top = '0';
     annotationCanvasEl.style.left = '0';
-    annotationCanvasEl.style.cursor = 'crosshair';
+    annotationCanvasEl.style.cursor = getCursorForTool();
 
     // Append canvases to container
     canvasContainer.appendChild(pdfCanvasEl);
@@ -209,6 +211,9 @@ export async function goToPage(pageNum) {
       pageWrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }
+
+  // Update active thumbnail in left panel
+  updateActiveThumbnail();
 }
 
 // Zoom controls
