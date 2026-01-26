@@ -137,7 +137,7 @@ export function handleKeydown(e) {
   // Help shortcuts
   if (e.key === 'F1') {
     e.preventDefault();
-    document.getElementById('menu-shortcuts')?.click();
+    document.getElementById('ribbon-shortcuts')?.click();
   } else if (e.key === 'F9') {
     e.preventDefault();
     toggleLeftPanel();

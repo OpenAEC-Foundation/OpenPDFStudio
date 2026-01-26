@@ -60,7 +60,7 @@ export function applyPreferences() {
 }
 
 // Show preferences dialog
-export function showPreferencesDialog() {
+export function showPreferencesDialog(tabName = 'general') {
   const overlay = document.getElementById('preferences-dialog');
   if (!overlay) return;
 
@@ -72,11 +72,36 @@ export function showPreferencesDialog() {
     dialog.style.transform = 'translate(-50%, -50%)';
   }
 
-  // Reset to first tab
+  // Switch to specified tab
   document.querySelectorAll('.pref-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.pref-tab-content').forEach(c => c.classList.remove('active'));
-  document.querySelector('.pref-tab[data-pref-tab="general"]')?.classList.add('active');
-  document.getElementById('pref-tab-general')?.classList.add('active');
+  document.querySelector(`.pref-tab[data-pref-tab="${tabName}"]`)?.classList.add('active');
+  document.getElementById(`pref-tab-${tabName}`)?.classList.add('active');
+
+  // Helper to update color picker display
+  function updateColorPicker(inputId, previewId, hexId, color) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    const hex = document.getElementById(hexId);
+    if (input) input.value = color;
+    if (preview) preview.style.backgroundColor = color;
+    if (hex) hex.textContent = color.toUpperCase();
+  }
+
+  // Helper to update fill color picker with None option
+  function updateFillColorPicker(inputId, previewId, hexId, btnId, noneId, color, isNone) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    const hex = document.getElementById(hexId);
+    const btn = document.getElementById(btnId);
+    const noneCheckbox = document.getElementById(noneId);
+
+    if (input) input.value = color;
+    if (preview) preview.style.backgroundColor = color;
+    if (hex) hex.textContent = color.toUpperCase();
+    if (noneCheckbox) noneCheckbox.checked = isNone;
+    if (btn) btn.disabled = isNone;
+  }
 
   // Populate form with current values
   const prefs = state.preferences;
@@ -86,7 +111,7 @@ export function showPreferencesDialog() {
   document.getElementById('pref-enable-angle-snap').checked = prefs.enableAngleSnap;
   document.getElementById('pref-grid-size').value = prefs.gridSize;
   document.getElementById('pref-enable-grid-snap').checked = prefs.enableGridSnap;
-  document.getElementById('pref-default-color').value = prefs.defaultAnnotationColor;
+  updateColorPicker('pref-default-color', 'pref-default-color-preview', 'pref-default-color-hex', prefs.defaultAnnotationColor);
   document.getElementById('pref-default-line-width').value = prefs.defaultLineWidth;
   document.getElementById('pref-default-font-size').value = prefs.defaultFontSize;
   document.getElementById('pref-highlight-opacity').value = prefs.highlightOpacity;
@@ -94,60 +119,108 @@ export function showPreferencesDialog() {
   document.getElementById('pref-confirm-delete').checked = prefs.confirmBeforeDelete;
 
   // TextBox defaults
-  const textboxFillNone = document.getElementById('pref-textbox-fill-none');
-  const textboxFillColor = document.getElementById('pref-textbox-fill-color');
-  if (textboxFillNone) textboxFillNone.checked = prefs.textboxFillNone;
-  if (textboxFillColor) {
-    textboxFillColor.value = prefs.textboxFillColor;
-    textboxFillColor.disabled = prefs.textboxFillNone;
-  }
-  document.getElementById('pref-textbox-stroke-color').value = prefs.textboxStrokeColor;
+  updateFillColorPicker('pref-textbox-fill-color', 'pref-textbox-fill-color-preview', 'pref-textbox-fill-color-hex',
+    'pref-textbox-fill-color-btn', 'pref-textbox-fill-none', prefs.textboxFillColor, prefs.textboxFillNone);
+  updateColorPicker('pref-textbox-stroke-color', 'pref-textbox-stroke-color-preview', 'pref-textbox-stroke-color-hex', prefs.textboxStrokeColor);
   document.getElementById('pref-textbox-border-width').value = prefs.textboxBorderWidth;
   document.getElementById('pref-textbox-border-style').value = prefs.textboxBorderStyle;
   document.getElementById('pref-textbox-opacity').value = prefs.textboxOpacity;
   document.getElementById('pref-textbox-font-size').value = prefs.textboxFontSize;
 
   // Callout defaults
-  const calloutFillNone = document.getElementById('pref-callout-fill-none');
-  const calloutFillColor = document.getElementById('pref-callout-fill-color');
-  if (calloutFillNone) calloutFillNone.checked = prefs.calloutFillNone;
-  if (calloutFillColor) {
-    calloutFillColor.value = prefs.calloutFillColor;
-    calloutFillColor.disabled = prefs.calloutFillNone;
-  }
-  document.getElementById('pref-callout-stroke-color').value = prefs.calloutStrokeColor;
+  updateFillColorPicker('pref-callout-fill-color', 'pref-callout-fill-color-preview', 'pref-callout-fill-color-hex',
+    'pref-callout-fill-color-btn', 'pref-callout-fill-none', prefs.calloutFillColor, prefs.calloutFillNone);
+  updateColorPicker('pref-callout-stroke-color', 'pref-callout-stroke-color-preview', 'pref-callout-stroke-color-hex', prefs.calloutStrokeColor);
   document.getElementById('pref-callout-border-width').value = prefs.calloutBorderWidth;
   document.getElementById('pref-callout-border-style').value = prefs.calloutBorderStyle;
   document.getElementById('pref-callout-opacity').value = prefs.calloutOpacity;
   document.getElementById('pref-callout-font-size').value = prefs.calloutFontSize;
 
   // Rectangle defaults
-  const rectFillNone = document.getElementById('pref-rect-fill-none');
-  const rectFillColor = document.getElementById('pref-rect-fill-color');
-  if (rectFillNone) rectFillNone.checked = prefs.rectFillNone;
-  if (rectFillColor) {
-    rectFillColor.value = prefs.rectFillColor;
-    rectFillColor.disabled = prefs.rectFillNone;
-  }
-  document.getElementById('pref-rect-stroke-color').value = prefs.rectStrokeColor;
+  updateFillColorPicker('pref-rect-fill-color', 'pref-rect-fill-color-preview', 'pref-rect-fill-color-hex',
+    'pref-rect-fill-color-btn', 'pref-rect-fill-none', prefs.rectFillColor, prefs.rectFillNone);
+  updateColorPicker('pref-rect-stroke-color', 'pref-rect-stroke-color-preview', 'pref-rect-stroke-color-hex', prefs.rectStrokeColor);
   document.getElementById('pref-rect-border-width').value = prefs.rectBorderWidth;
   document.getElementById('pref-rect-border-style').value = prefs.rectBorderStyle;
   document.getElementById('pref-rect-opacity').value = prefs.rectOpacity;
 
   // Circle/Ellipse defaults
-  const circleFillNone = document.getElementById('pref-circle-fill-none');
-  const circleFillColor = document.getElementById('pref-circle-fill-color');
-  if (circleFillNone) circleFillNone.checked = prefs.circleFillNone;
-  if (circleFillColor) {
-    circleFillColor.value = prefs.circleFillColor;
-    circleFillColor.disabled = prefs.circleFillNone;
-  }
-  document.getElementById('pref-circle-stroke-color').value = prefs.circleStrokeColor;
+  updateFillColorPicker('pref-circle-fill-color', 'pref-circle-fill-color-preview', 'pref-circle-fill-color-hex',
+    'pref-circle-fill-color-btn', 'pref-circle-fill-none', prefs.circleFillColor, prefs.circleFillNone);
+  updateColorPicker('pref-circle-stroke-color', 'pref-circle-stroke-color-preview', 'pref-circle-stroke-color-hex', prefs.circleStrokeColor);
   document.getElementById('pref-circle-border-width').value = prefs.circleBorderWidth;
   document.getElementById('pref-circle-border-style').value = prefs.circleBorderStyle;
   document.getElementById('pref-circle-opacity').value = prefs.circleOpacity;
 
+  // Check current default PDF app
+  checkDefaultPdfApp();
+
   overlay.classList.add('visible');
+}
+
+// Check which app is set as default for PDF files
+async function checkDefaultPdfApp() {
+  const statusEl = document.getElementById('pref-current-pdf-app');
+  if (!statusEl) return;
+
+  statusEl.textContent = 'Checking...';
+
+  try {
+    const os = require('os');
+    const platform = os.platform();
+
+    if (platform === 'win32') {
+      const { exec } = require('child_process');
+
+      // Query Windows registry for PDF file association
+      exec('reg query "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.pdf\\UserChoice" /v ProgId', (err, stdout) => {
+        if (err) {
+          statusEl.textContent = 'Unable to detect';
+          return;
+        }
+
+        const match = stdout.match(/ProgId\s+REG_SZ\s+(.+)/);
+        if (match) {
+          let appName = match[1].trim();
+          // Clean up common app identifiers
+          if (appName.includes('AcroExch') || appName.includes('Acrobat')) {
+            appName = 'Adobe Acrobat';
+          } else if (appName.includes('Edge')) {
+            appName = 'Microsoft Edge';
+          } else if (appName.includes('Chrome')) {
+            appName = 'Google Chrome';
+          } else if (appName.includes('Firefox')) {
+            appName = 'Mozilla Firefox';
+          } else if (appName.includes('OpenPDFStudio') || appName.includes('open-pdf-studio')) {
+            appName = 'OpenPDFStudio ✓';
+          } else if (appName.includes('SumatraPDF')) {
+            appName = 'SumatraPDF';
+          } else if (appName.includes('FoxitReader') || appName.includes('Foxit')) {
+            appName = 'Foxit Reader';
+          }
+          statusEl.textContent = appName;
+        } else {
+          statusEl.textContent = 'Not set';
+        }
+      });
+    } else if (platform === 'darwin') {
+      // macOS - would need duti or similar
+      statusEl.textContent = 'Check Finder → Get Info';
+    } else {
+      // Linux
+      const { exec } = require('child_process');
+      exec('xdg-mime query default application/pdf', (err, stdout) => {
+        if (err || !stdout.trim()) {
+          statusEl.textContent = 'Not set';
+          return;
+        }
+        let appName = stdout.trim().replace('.desktop', '');
+        statusEl.textContent = appName;
+      });
+    }
+  } catch (err) {
+    statusEl.textContent = 'Unable to detect';
+  }
 }
 
 // Hide preferences dialog

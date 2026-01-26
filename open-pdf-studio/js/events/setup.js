@@ -534,14 +534,16 @@ function setupMenuEvents() {
     setTool('comment');
   });
 
-  // Help menu
-  document.getElementById('menu-about')?.addEventListener('click', () => {
-    closeAllMenus();
+  // Help ribbon buttons
+  document.getElementById('ribbon-about')?.addEventListener('click', () => {
     showAboutDialog();
   });
 
-  document.getElementById('menu-shortcuts')?.addEventListener('click', () => {
-    closeAllMenus();
+  document.getElementById('ribbon-file-assoc')?.addEventListener('click', () => {
+    showPreferencesDialog('fileassoc');
+  });
+
+  document.getElementById('ribbon-shortcuts')?.addEventListener('click', () => {
     const shortcuts = `Keyboard Shortcuts:
 
 FILE:
@@ -573,6 +575,70 @@ N - Note`;
     alert(shortcuts);
   });
 
+  document.getElementById('ribbon-check-updates')?.addEventListener('click', async () => {
+    const GITHUB_REPO = 'OpenAEC-Foundation/Open-2D-Studio';
+    const CURRENT_VERSION = '1.0.2';
+
+    try {
+      const btn = document.getElementById('ribbon-check-updates');
+      const originalLabel = btn.querySelector('.ribbon-btn-label').textContent;
+      btn.querySelector('.ribbon-btn-label').textContent = '...';
+      btn.disabled = true;
+
+      const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
+        headers: { 'Accept': 'application/vnd.github+json' }
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          alert('No releases found yet.\n\nYou are running the latest development version.');
+        } else {
+          throw new Error(`GitHub API error: ${response.status}`);
+        }
+        return;
+      }
+
+      const release = await response.json();
+      const latestVersion = release.tag_name.replace(/^v/, '');
+
+      // Compare versions
+      const current = CURRENT_VERSION.split('.').map(Number);
+      const latest = latestVersion.split('.').map(Number);
+
+      let needsUpdate = false;
+      for (let i = 0; i < Math.max(current.length, latest.length); i++) {
+        const c = current[i] || 0;
+        const l = latest[i] || 0;
+        if (l > c) { needsUpdate = true; break; }
+        if (c > l) { break; }
+      }
+
+      if (needsUpdate) {
+        const update = confirm(
+          `A new version is available!\n\n` +
+          `Current: v${CURRENT_VERSION}\n` +
+          `Latest: v${latestVersion}\n\n` +
+          `${release.name || ''}\n\n` +
+          `Click OK to open the download page.`
+        );
+        if (update) {
+          require('electron').shell.openExternal(release.html_url);
+        }
+      } else {
+        alert(`You're up to date!\n\nCurrent version: v${CURRENT_VERSION}`);
+      }
+    } catch (err) {
+      console.error('Update check failed:', err);
+      alert('Failed to check for updates.\n\nPlease check your internet connection and try again.');
+    } finally {
+      const btn = document.getElementById('ribbon-check-updates');
+      if (btn) {
+        btn.querySelector('.ribbon-btn-label').textContent = 'Updates';
+        btn.disabled = false;
+      }
+    }
+  });
+
   // Preferences dialog buttons
   document.getElementById('pref-close-btn')?.addEventListener('click', hidePreferencesDialog);
   document.getElementById('pref-cancel-btn')?.addEventListener('click', hidePreferencesDialog);
@@ -583,6 +649,33 @@ N - Note`;
   document.getElementById('preferences-dialog')?.addEventListener('click', (e) => {
     if (e.target.id === 'preferences-dialog') {
       hidePreferencesDialog();
+    }
+  });
+
+  // File association - Set as default PDF viewer
+  document.getElementById('pref-set-default-app')?.addEventListener('click', async () => {
+    const { shell } = require('electron');
+    const os = require('os');
+    const platform = os.platform();
+
+    if (platform === 'win32') {
+      // On Windows, open the Default Apps settings
+      try {
+        // Try to open Windows Settings directly to Default Apps
+        await shell.openExternal('ms-settings:defaultapps');
+        alert('Windows Settings opened.\n\nTo set OpenPDFStudio as default:\n1. Scroll down to "Choose default apps by file type"\n2. Find .pdf\n3. Click and select OpenPDFStudio');
+      } catch (err) {
+        // Fallback: open Control Panel
+        const { exec } = require('child_process');
+        exec('control /name Microsoft.DefaultPrograms');
+        alert('Default Programs opened.\n\nSelect "Set your default programs" and choose OpenPDFStudio.');
+      }
+    } else if (platform === 'darwin') {
+      // macOS
+      alert('To set OpenPDFStudio as default PDF viewer on macOS:\n\n1. Right-click any PDF file in Finder\n2. Select "Get Info"\n3. Under "Open with", select OpenPDFStudio\n4. Click "Change All..."');
+    } else {
+      // Linux
+      alert('To set OpenPDFStudio as default PDF viewer on Linux:\n\nRun in terminal:\nxdg-mime default openpdfstudio.desktop application/pdf');
     }
   });
 

@@ -16,7 +16,7 @@ import { initMenus } from './ui/menus.js';
 import { initRibbon } from './ui/ribbon.js';
 import { initContextMenus } from './ui/context-menus.js';
 import { initAnnotationsList } from './ui/annotations-list.js';
-import { initAllColorPalettes } from './ui/color-palette.js';
+import { initAllColorPalettes, initAllPrefColorPalettes } from './ui/color-palette.js';
 import { updateAllStatus } from './ui/status-bar.js';
 import { initLeftPanel } from './ui/left-panel.js';
 
@@ -41,6 +41,7 @@ async function init() {
   initContextMenus();
   initAnnotationsList();
   initAllColorPalettes();
+  initAllPrefColorPalettes();
   initLeftPanel();
 
   // Initialize preferences dialog drag

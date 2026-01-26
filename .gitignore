@@ -28,3 +28,6 @@ release/
 *.png
 !open-pdf-studio/icon.png
 !open-pdf-studio/pdfjs/**
+
+# Documentation
+open-pdf-studio/CLAUDE.md

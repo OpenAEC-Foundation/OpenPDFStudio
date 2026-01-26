@@ -258,7 +258,6 @@
       font-size: 12px;
       background: transparent;
       border: none;
-      cursor: pointer;
       color: #94a3b8;
       font-weight: 500;
       border-radius: 4px 4px 0 0;
@@ -396,14 +395,16 @@
     }
 
     .ribbon-btn-label {
-      font-size: 11px;
+      font-size: 10px;
       color: #94a3b8;
       text-align: center;
-      line-height: 1.2;
-      max-width: 52px;
+      line-height: 1.15;
+      max-width: 58px;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      word-break: break-word;
     }
 
     .ribbon-btn:hover .ribbon-btn-label {
@@ -1173,6 +1174,15 @@
       border-color: #9ca3af;
     }
 
+    .color-picker-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .color-picker-button:disabled:hover {
+      border-color: #d1d5db;
+    }
+
     .color-picker-button .color-preview {
       width: 16px;
       height: 14px;
@@ -1204,9 +1214,13 @@
       border: 1px solid #d1d5db;
       border-radius: 4px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      padding: 8px;
+      padding: 6px;
       z-index: 100;
       display: none;
+    }
+
+    .color-palette-dropdown .color-palette {
+      justify-content: center;
     }
 
     .color-palette-dropdown.show {
@@ -1246,7 +1260,7 @@
       align-items: center;
       justify-content: center;
       gap: 4px;
-      padding: 6px 8px;
+      padding: 3px 8px;
       background: #f0f0f0;
       border: 1px solid #d1d5db;
       border-radius: 3px;
@@ -1271,7 +1285,7 @@
       align-items: center;
       justify-content: center;
       gap: 4px;
-      padding: 6px 8px;
+      padding: 3px 8px;
       background: #fff;
       border: 1px solid #d1d5db;
       border-radius: 3px;
@@ -1774,10 +1788,11 @@
     }
 
     .preferences-dialog {
-      background: white;
-      border-radius: 6px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-      width: 480px;
+      background: #ffffff;
+      border-radius: 0;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      border: 1px solid #d4d4d4;
+      width: 560px;
       height: 500px;
       display: flex;
       flex-direction: column;
@@ -1791,88 +1806,84 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 12px;
-      border-bottom: 1px solid #e5e7eb;
-      background: #f9fafb;
-      border-radius: 6px 6px 0 0;
-      cursor: move;
+      padding: 0;
+      padding-left: 10px;
+      border-bottom: 1px solid #d4d4d4;
+      background: linear-gradient(to bottom, #ffffff 0%, #f5f5f5 100%);
+      height: 30px;
       user-select: none;
     }
 
     .preferences-header h2 {
       margin: 0;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
-      color: #1f2937;
+      color: #333;
     }
 
     .preferences-close-btn {
       background: none;
       border: none;
-      font-size: 18px;
-      color: #6b7280;
+      font-size: 16px;
+      color: #333;
       cursor: pointer;
       padding: 0;
       line-height: 1;
-      width: 24px;
-      height: 24px;
+      width: 46px;
+      height: 30px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 3px;
-      transition: background 0.2s, color 0.2s;
+      border-radius: 0;
+      transition: background 0.1s;
     }
 
     .preferences-close-btn:hover {
-      background: #e5e7eb;
-      color: #1f2937;
+      background: #e81123;
+      color: white;
     }
 
     .preferences-content {
       flex: 1;
-      overflow-y: auto;
+      overflow: hidden;
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
     }
 
-    /* Preferences Tabs - matching ribbon style */
+    /* Preferences Tabs - vertical layout on left side */
     .pref-tabs {
-      background: linear-gradient(to bottom, #2d2d30 0%, #252528 100%);
-      border-bottom: 1px solid #3f3f46;
+      background: linear-gradient(to right, #1e293b 0%, #1a2436 100%);
+      border-right: 1px solid #334155;
       display: flex;
-      padding: 0 8px;
+      flex-direction: column;
+      padding: 8px 0;
       gap: 2px;
-      height: 32px;
-      align-items: flex-end;
+      width: 120px;
       flex-shrink: 0;
     }
 
     .pref-tab {
-      padding: 6px 16px;
-      font-size: 12px;
+      padding: 8px 12px;
+      font-size: 11px;
       background: transparent;
       border: none;
-      cursor: pointer;
-      color: #cccccc;
+      color: #94a3b8;
       font-weight: 500;
-      border-radius: 4px 4px 0 0;
+      border-radius: 0;
       transition: all 0.15s ease;
-      position: relative;
-      border: 1px solid transparent;
-      border-bottom: none;
+      text-align: left;
+      border-left: 3px solid transparent;
     }
 
     .pref-tab:hover {
-      background: #3e3e42;
+      background: #334155;
       color: #ffffff;
     }
 
     .pref-tab.active {
-      background: #ffffff;
-      color: #1f2937;
-      border-color: #3f3f46;
-      border-bottom: 1px solid #ffffff;
-      margin-bottom: -1px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      border-left-color: #3b82f6;
     }
 
     .pref-tab-content {
@@ -1880,54 +1891,54 @@
       padding: 12px;
       flex: 1;
       overflow-y: auto;
+      background: #ffffff;
     }
 
     .pref-tab-content.active {
       display: block;
     }
 
-    /* Fill color with None option */
-    .pref-fill-color-wrapper {
+    /* Preferences color picker - uses same component as properties panel */
+    .pref-color-wrapper {
+      position: relative;
+      width: 140px;
+    }
+
+    .pref-color-wrapper .color-picker-button {
+      width: 100%;
+    }
+
+    .pref-color-wrapper .color-palette-dropdown {
+      right: 0;
+      left: auto;
+      width: 200px;
+    }
+
+    .pref-color-wrapper input[type="color"] {
+      position: absolute;
+      width: 0;
+      height: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .pref-color-row {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
 
-    .pref-fill-color-wrapper input[type="color"] {
-      width: 45px;
-      height: 24px;
-      padding: 2px;
-      border: 1px solid #d1d5db;
-      border-radius: 3px;
-      cursor: pointer;
-    }
-
-    .pref-fill-color-wrapper input[type="color"]:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .pref-fill-none-indicator {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 45px;
-      height: 24px;
-      border: 1px solid #d1d5db;
-      border-radius: 3px;
-      background: linear-gradient(135deg, #fff 45%, #ff0000 45%, #ff0000 55%, #fff 55%);
-    }
-
-    .pref-fill-none-checkbox {
+    .pref-color-row .pref-fill-none-checkbox {
       display: flex;
       align-items: center;
       gap: 3px;
       font-size: 11px;
-      color: #6b7280;
+      color: #333;
     }
 
-    .pref-fill-none-checkbox input {
+    .pref-color-row .pref-fill-none-checkbox input {
       margin: 0;
+      accent-color: #0078d7;
     }
 
     .preferences-section {
@@ -1940,11 +1951,11 @@
 
     .preferences-section h3 {
       margin: 0 0 8px 0;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
-      color: #374151;
+      color: #333;
       padding-bottom: 4px;
-      border-bottom: 1px solid #e5e7eb;
+      border-bottom: 1px solid #d4d4d4;
     }
 
     .pref-row {
@@ -1960,41 +1971,41 @@
 
     .pref-row label {
       font-size: 11px;
-      color: #4b5563;
+      color: #333;
     }
 
     .pref-row input[type="text"],
     .pref-row input[type="number"] {
       width: 100px;
-      padding: 4px 8px;
-      border: 1px solid #d1d5db;
-      border-radius: 3px;
+      padding: 3px 6px;
+      border: 1px solid #acacac;
+      border-radius: 0;
       font-size: 11px;
       font-family: inherit;
+      background: #fff;
     }
 
     .pref-row input[type="text"]:focus,
     .pref-row input[type="number"]:focus {
       outline: none;
-      border-color: #2563eb;
-      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+      border-color: #0078d7;
     }
 
     .pref-row input[type="color"] {
       width: 50px;
-      height: 24px;
-      padding: 2px;
-      border: 1px solid #d1d5db;
-      border-radius: 3px;
+      height: 22px;
+      padding: 1px;
+      border: 1px solid #acacac;
+      border-radius: 0;
       cursor: pointer;
     }
 
     .pref-row select {
       width: 100px;
-      padding: 4px 8px;
-      border: 1px solid #d1d5db;
-      border-radius: 4px;
-      font-size: 13px;
+      padding: 3px 6px;
+      border: 1px solid #acacac;
+      border-radius: 0;
+      font-size: 11px;
       font-family: inherit;
       background-color: white;
       cursor: pointer;
@@ -2002,8 +2013,7 @@
 
     .pref-row select:focus {
       outline: none;
-      border-color: #2563eb;
-      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+      border-color: #0078d7;
     }
 
     .pref-checkbox-row {
@@ -2013,17 +2023,17 @@
     .pref-checkbox-label {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       cursor: pointer;
-      font-size: 13px;
-      color: #4b5563;
+      font-size: 11px;
+      color: #333;
     }
 
     .pref-checkbox-label input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
+      width: 13px;
+      height: 13px;
       cursor: pointer;
-      accent-color: #2563eb;
+      accent-color: #0078d7;
     }
 
     .pref-checkbox-label span {
@@ -2034,43 +2044,47 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 20px;
+      padding: 8px 12px;
+      background: #f5f5f5;
       border-top: 1px solid #e5e7eb;
-      background: #f9fafb;
-      border-radius: 0 0 8px 8px;
     }
 
     .pref-footer-right {
       display: flex;
-      gap: 8px;
+      gap: 6px;
     }
 
     .pref-btn {
-      padding: 8px 16px;
-      border: none;
-      border-radius: 4px;
-      font-size: 13px;
-      font-weight: 500;
+      padding: 5px 20px;
+      border: 1px solid #acacac;
+      border-radius: 2px;
+      font-size: 11px;
+      font-weight: 400;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: background 0.1s, border-color 0.1s;
+      min-width: 75px;
     }
 
     .pref-btn-primary {
-      background: #2563eb;
-      color: white;
+      background: #e1e1e1;
+      color: #333;
+      border-color: #0078d7;
+      box-shadow: inset 0 0 0 1px #0078d7;
     }
 
     .pref-btn-primary:hover {
-      background: #1d4ed8;
+      background: #d4e9fc;
+      border-color: #0078d7;
     }
 
     .pref-btn-secondary {
-      background: #e5e7eb;
-      color: #374151;
+      background: #e1e1e1;
+      color: #333;
     }
 
     .pref-btn-secondary:hover {
-      background: #d1d5db;
+      background: #d4d4d4;
+      border-color: #808080;
     }
 
     /* Status Bar */
@@ -2651,19 +2665,6 @@
             </div>
           </div>
         </div>
-        <div class="menu-item" data-menu="help">
-          <span class="menu-label">Help</span>
-          <div class="menu-dropdown" id="menu-help">
-            <div class="menu-option" id="menu-about">
-              <span class="menu-option-label">About OpenPDFStudio</span>
-              <span class="menu-option-shortcut"></span>
-            </div>
-            <div class="menu-option" id="menu-shortcuts">
-              <span class="menu-option-label">Keyboard Shortcuts</span>
-              <span class="menu-option-shortcut">F1</span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
     <div class="title-bar-center">
@@ -2693,6 +2694,7 @@
       <button class="ribbon-tab" data-tab="edit">Edit</button>
       <button class="ribbon-tab" data-tab="forms">Forms</button>
       <button class="ribbon-tab" data-tab="organize">Organize</button>
+      <button class="ribbon-tab" data-tab="help">Help</button>
     </div>
 
     <!-- Home Tab Content -->
@@ -3135,6 +3137,61 @@
             </button>
           </div>
           <div class="ribbon-group-label">Pages</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Help Tab Content -->
+    <div class="ribbon-content" id="tab-help">
+      <div class="ribbon-groups">
+        <div class="ribbon-group">
+          <div class="ribbon-group-content">
+            <button class="ribbon-btn" id="ribbon-about" title="About OpenPDFStudio">
+              <div class="ribbon-btn-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <span class="ribbon-btn-label">About</span>
+            </button>
+            <button class="ribbon-btn" id="ribbon-shortcuts" title="Keyboard Shortcuts (F1)">
+              <div class="ribbon-btn-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
+              </div>
+              <span class="ribbon-btn-label">Shortcuts</span>
+            </button>
+          </div>
+          <div class="ribbon-group-label">Information</div>
+        </div>
+
+        <div class="ribbon-group">
+          <div class="ribbon-group-content">
+            <button class="ribbon-btn" id="ribbon-check-updates" title="Check for Updates">
+              <div class="ribbon-btn-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+              </div>
+              <span class="ribbon-btn-label">Updates</span>
+            </button>
+          </div>
+          <div class="ribbon-group-label">Updates</div>
+        </div>
+
+        <div class="ribbon-group">
+          <div class="ribbon-group-content">
+            <button class="ribbon-btn" id="ribbon-file-assoc" title="Set Default PDF Application">
+              <div class="ribbon-btn-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+              </div>
+              <span class="ribbon-btn-label">File Associations</span>
+            </button>
+          </div>
+          <div class="ribbon-group-label">File Association</div>
         </div>
       </div>
     </div>
@@ -3707,6 +3764,7 @@
           <button class="pref-tab" data-pref-tab="annotations">Annotations</button>
           <button class="pref-tab" data-pref-tab="shapes">Shapes</button>
           <button class="pref-tab" data-pref-tab="behavior">Behavior</button>
+          <button class="pref-tab" data-pref-tab="fileassoc">File Association</button>
         </div>
 
         <!-- General Tab -->
@@ -3746,8 +3804,27 @@
           <div class="preferences-section">
             <h3>Defaults</h3>
             <div class="pref-row">
-              <label for="pref-default-color">Default Annotation Color</label>
-              <input type="color" id="pref-default-color" value="#ffff00">
+              <label>Default Annotation Color</label>
+              <div class="pref-color-wrapper" id="pref-default-color-wrapper">
+                <button type="button" class="color-picker-button" id="pref-default-color-btn">
+                  <div class="color-preview" id="pref-default-color-preview" style="background: #ffff00;"></div>
+                  <span class="color-hex" id="pref-default-color-hex">#FFFF00</span>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                <div class="color-palette-dropdown" id="pref-default-color-dropdown">
+                  <div class="color-palette" id="pref-default-color-palette"></div>
+                  <button type="button" class="color-custom-btn" id="pref-default-color-custom-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 2a10 10 0 0 1 0 20"/>
+                    </svg>
+                    More Colors...
+                  </button>
+                </div>
+                <input type="color" id="pref-default-color" value="#ffff00">
+              </div>
             </div>
             <div class="pref-row">
               <label for="pref-default-line-width">Default Line Width</label>
@@ -3769,18 +3846,56 @@
           <div class="preferences-section">
             <h3>Text Box Defaults</h3>
             <div class="pref-row">
-              <label for="pref-textbox-fill-color">Fill Color</label>
-              <div class="pref-fill-color-wrapper">
+              <label>Fill Color</label>
+              <div class="pref-color-row">
                 <label class="pref-fill-none-checkbox">
                   <input type="checkbox" id="pref-textbox-fill-none">
                   <span>None</span>
                 </label>
-                <input type="color" id="pref-textbox-fill-color" value="#ffffd0">
+                <div class="pref-color-wrapper" id="pref-textbox-fill-color-wrapper">
+                  <button type="button" class="color-picker-button" id="pref-textbox-fill-color-btn">
+                    <div class="color-preview" id="pref-textbox-fill-color-preview" style="background: #ffffd0;"></div>
+                    <span class="color-hex" id="pref-textbox-fill-color-hex">#FFFFD0</span>
+                    <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                  </button>
+                  <div class="color-palette-dropdown" id="pref-textbox-fill-color-dropdown">
+                    <div class="color-palette" id="pref-textbox-fill-color-palette"></div>
+                    <button type="button" class="color-custom-btn" id="pref-textbox-fill-color-custom-btn">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 2a10 10 0 0 1 0 20"/>
+                      </svg>
+                      More Colors...
+                    </button>
+                  </div>
+                  <input type="color" id="pref-textbox-fill-color" value="#ffffd0">
+                </div>
               </div>
             </div>
             <div class="pref-row">
-              <label for="pref-textbox-stroke-color">Stroke Color</label>
-              <input type="color" id="pref-textbox-stroke-color" value="#000000">
+              <label>Stroke Color</label>
+              <div class="pref-color-wrapper" id="pref-textbox-stroke-color-wrapper">
+                <button type="button" class="color-picker-button" id="pref-textbox-stroke-color-btn">
+                  <div class="color-preview" id="pref-textbox-stroke-color-preview" style="background: #000000;"></div>
+                  <span class="color-hex" id="pref-textbox-stroke-color-hex">#000000</span>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                <div class="color-palette-dropdown" id="pref-textbox-stroke-color-dropdown">
+                  <div class="color-palette" id="pref-textbox-stroke-color-palette"></div>
+                  <button type="button" class="color-custom-btn" id="pref-textbox-stroke-color-custom-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 2a10 10 0 0 1 0 20"/>
+                    </svg>
+                    More Colors...
+                  </button>
+                </div>
+                <input type="color" id="pref-textbox-stroke-color" value="#000000">
+              </div>
             </div>
             <div class="pref-row">
               <label for="pref-textbox-border-width">Border Width</label>
@@ -3807,18 +3922,56 @@
           <div class="preferences-section">
             <h3>Callout Defaults</h3>
             <div class="pref-row">
-              <label for="pref-callout-fill-color">Fill Color</label>
-              <div class="pref-fill-color-wrapper">
+              <label>Fill Color</label>
+              <div class="pref-color-row">
                 <label class="pref-fill-none-checkbox">
                   <input type="checkbox" id="pref-callout-fill-none">
                   <span>None</span>
                 </label>
-                <input type="color" id="pref-callout-fill-color" value="#ffffd0">
+                <div class="pref-color-wrapper" id="pref-callout-fill-color-wrapper">
+                  <button type="button" class="color-picker-button" id="pref-callout-fill-color-btn">
+                    <div class="color-preview" id="pref-callout-fill-color-preview" style="background: #ffffd0;"></div>
+                    <span class="color-hex" id="pref-callout-fill-color-hex">#FFFFD0</span>
+                    <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                  </button>
+                  <div class="color-palette-dropdown" id="pref-callout-fill-color-dropdown">
+                    <div class="color-palette" id="pref-callout-fill-color-palette"></div>
+                    <button type="button" class="color-custom-btn" id="pref-callout-fill-color-custom-btn">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 2a10 10 0 0 1 0 20"/>
+                      </svg>
+                      More Colors...
+                    </button>
+                  </div>
+                  <input type="color" id="pref-callout-fill-color" value="#ffffd0">
+                </div>
               </div>
             </div>
             <div class="pref-row">
-              <label for="pref-callout-stroke-color">Stroke Color</label>
-              <input type="color" id="pref-callout-stroke-color" value="#000000">
+              <label>Stroke Color</label>
+              <div class="pref-color-wrapper" id="pref-callout-stroke-color-wrapper">
+                <button type="button" class="color-picker-button" id="pref-callout-stroke-color-btn">
+                  <div class="color-preview" id="pref-callout-stroke-color-preview" style="background: #000000;"></div>
+                  <span class="color-hex" id="pref-callout-stroke-color-hex">#000000</span>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                <div class="color-palette-dropdown" id="pref-callout-stroke-color-dropdown">
+                  <div class="color-palette" id="pref-callout-stroke-color-palette"></div>
+                  <button type="button" class="color-custom-btn" id="pref-callout-stroke-color-custom-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 2a10 10 0 0 1 0 20"/>
+                    </svg>
+                    More Colors...
+                  </button>
+                </div>
+                <input type="color" id="pref-callout-stroke-color" value="#000000">
+              </div>
             </div>
             <div class="pref-row">
               <label for="pref-callout-border-width">Border Width</label>
@@ -3848,18 +4001,56 @@
           <div class="preferences-section">
             <h3>Rectangle Defaults</h3>
             <div class="pref-row">
-              <label for="pref-rect-fill-color">Fill Color</label>
-              <div class="pref-fill-color-wrapper">
+              <label>Fill Color</label>
+              <div class="pref-color-row">
                 <label class="pref-fill-none-checkbox">
                   <input type="checkbox" id="pref-rect-fill-none" checked>
                   <span>None</span>
                 </label>
-                <input type="color" id="pref-rect-fill-color" value="#ffff00" disabled>
+                <div class="pref-color-wrapper" id="pref-rect-fill-color-wrapper">
+                  <button type="button" class="color-picker-button" id="pref-rect-fill-color-btn" disabled>
+                    <div class="color-preview" id="pref-rect-fill-color-preview" style="background: #ffff00;"></div>
+                    <span class="color-hex" id="pref-rect-fill-color-hex">#FFFF00</span>
+                    <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                  </button>
+                  <div class="color-palette-dropdown" id="pref-rect-fill-color-dropdown">
+                    <div class="color-palette" id="pref-rect-fill-color-palette"></div>
+                    <button type="button" class="color-custom-btn" id="pref-rect-fill-color-custom-btn">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 2a10 10 0 0 1 0 20"/>
+                      </svg>
+                      More Colors...
+                    </button>
+                  </div>
+                  <input type="color" id="pref-rect-fill-color" value="#ffff00">
+                </div>
               </div>
             </div>
             <div class="pref-row">
-              <label for="pref-rect-stroke-color">Stroke Color</label>
-              <input type="color" id="pref-rect-stroke-color" value="#000000">
+              <label>Stroke Color</label>
+              <div class="pref-color-wrapper" id="pref-rect-stroke-color-wrapper">
+                <button type="button" class="color-picker-button" id="pref-rect-stroke-color-btn">
+                  <div class="color-preview" id="pref-rect-stroke-color-preview" style="background: #000000;"></div>
+                  <span class="color-hex" id="pref-rect-stroke-color-hex">#000000</span>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                <div class="color-palette-dropdown" id="pref-rect-stroke-color-dropdown">
+                  <div class="color-palette" id="pref-rect-stroke-color-palette"></div>
+                  <button type="button" class="color-custom-btn" id="pref-rect-stroke-color-custom-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 2a10 10 0 0 1 0 20"/>
+                    </svg>
+                    More Colors...
+                  </button>
+                </div>
+                <input type="color" id="pref-rect-stroke-color" value="#000000">
+              </div>
             </div>
             <div class="pref-row">
               <label for="pref-rect-border-width">Border Width</label>
@@ -3882,18 +4073,56 @@
           <div class="preferences-section">
             <h3>Ellipse Defaults</h3>
             <div class="pref-row">
-              <label for="pref-circle-fill-color">Fill Color</label>
-              <div class="pref-fill-color-wrapper">
+              <label>Fill Color</label>
+              <div class="pref-color-row">
                 <label class="pref-fill-none-checkbox">
                   <input type="checkbox" id="pref-circle-fill-none" checked>
                   <span>None</span>
                 </label>
-                <input type="color" id="pref-circle-fill-color" value="#ffff00" disabled>
+                <div class="pref-color-wrapper" id="pref-circle-fill-color-wrapper">
+                  <button type="button" class="color-picker-button" id="pref-circle-fill-color-btn" disabled>
+                    <div class="color-preview" id="pref-circle-fill-color-preview" style="background: #ffff00;"></div>
+                    <span class="color-hex" id="pref-circle-fill-color-hex">#FFFF00</span>
+                    <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                  </button>
+                  <div class="color-palette-dropdown" id="pref-circle-fill-color-dropdown">
+                    <div class="color-palette" id="pref-circle-fill-color-palette"></div>
+                    <button type="button" class="color-custom-btn" id="pref-circle-fill-color-custom-btn">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 2a10 10 0 0 1 0 20"/>
+                      </svg>
+                      More Colors...
+                    </button>
+                  </div>
+                  <input type="color" id="pref-circle-fill-color" value="#ffff00">
+                </div>
               </div>
             </div>
             <div class="pref-row">
-              <label for="pref-circle-stroke-color">Stroke Color</label>
-              <input type="color" id="pref-circle-stroke-color" value="#000000">
+              <label>Stroke Color</label>
+              <div class="pref-color-wrapper" id="pref-circle-stroke-color-wrapper">
+                <button type="button" class="color-picker-button" id="pref-circle-stroke-color-btn">
+                  <div class="color-preview" id="pref-circle-stroke-color-preview" style="background: #000000;"></div>
+                  <span class="color-hex" id="pref-circle-stroke-color-hex">#000000</span>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                <div class="color-palette-dropdown" id="pref-circle-stroke-color-dropdown">
+                  <div class="color-palette" id="pref-circle-stroke-color-palette"></div>
+                  <button type="button" class="color-custom-btn" id="pref-circle-stroke-color-custom-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 2a10 10 0 0 1 0 20"/>
+                    </svg>
+                    More Colors...
+                  </button>
+                </div>
+                <input type="color" id="pref-circle-stroke-color" value="#000000">
+              </div>
             </div>
             <div class="pref-row">
               <label for="pref-circle-border-width">Border Width</label>
@@ -3934,6 +4163,25 @@
                 <span>Confirm before deleting annotations</span>
               </label>
             </div>
+          </div>
+        </div>
+
+        <!-- File Association Tab -->
+        <div class="pref-tab-content" id="pref-tab-fileassoc">
+          <div class="preferences-section">
+            <h3>Default PDF Application</h3>
+            <div class="pref-row">
+              <label>Current default:</label>
+              <span id="pref-current-pdf-app" style="font-size: 11px; color: #666;">Checking...</span>
+            </div>
+            <div class="pref-row" style="margin-top: 12px;">
+              <button type="button" class="pref-btn pref-btn-secondary" id="pref-set-default-app" style="width: 100%;">
+                Set OpenPDFStudio as Default PDF Viewer
+              </button>
+            </div>
+            <p style="font-size: 10px; color: #888; margin-top: 12px; line-height: 1.4;">
+              This will open your system settings where you can select OpenPDFStudio as the default application for opening PDF files.
+            </p>
           </div>
         </div>
       </div>

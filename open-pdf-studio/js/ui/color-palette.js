@@ -6,25 +6,19 @@ import { redrawAnnotations, redrawContinuous } from '../annotations/rendering.js
 // Each inner array is a column (from light to dark)
 const PALETTE_COLUMNS = [
   // Grays
-  ['#ffffff', '#efefef', '#d9d9d9', '#b7b7b7', '#999999', '#666666', '#434343', '#000000'],
+  ['#ffffff', '#d9d9d9', '#999999', '#666666', '#333333', '#000000'],
   // Reds
-  ['#f4cccc', '#ea9999', '#e06666', '#ff0000', '#cc0000', '#990000', '#660000', '#4d0000'],
-  // Oranges
-  ['#fce5cd', '#f9cb9c', '#f6b26b', '#ff9900', '#e69138', '#b45f06', '#783f04', '#5c2e00'],
-  // Yellows
-  ['#fff2cc', '#ffe599', '#ffd966', '#ffff00', '#f1c232', '#bf9000', '#7f6000', '#5c5c00'],
+  ['#f4cccc', '#ea9999', '#e06666', '#ff0000', '#cc0000', '#660000'],
+  // Oranges/Yellows
+  ['#fce5cd', '#f9cb9c', '#ffff00', '#ffd966', '#f1c232', '#bf9000'],
   // Greens
-  ['#d9ead3', '#b6d7a8', '#93c47d', '#00ff00', '#6aa84f', '#38761d', '#274e13', '#1a3d10'],
-  // Cyans
-  ['#d0e0e3', '#a2c4c9', '#76a5af', '#00ffff', '#45818e', '#134f5c', '#0c343d', '#082929'],
-  // Light Blues
-  ['#c9daf8', '#a4c2f4', '#6d9eeb', '#4a86e8', '#3c78d8', '#1155cc', '#1c4587', '#0f2d52'],
+  ['#d9ead3', '#b6d7a8', '#93c47d', '#00ff00', '#38761d', '#274e13'],
+  // Cyans/Teals
+  ['#d0e0e3', '#a2c4c9', '#76a5af', '#00ffff', '#45818e', '#134f5c'],
   // Blues
-  ['#cfe2f3', '#9fc5e8', '#6fa8dc', '#0000ff', '#3d85c6', '#0b5394', '#073763', '#04234a'],
-  // Purples
-  ['#d9d2e9', '#b4a7d6', '#8e7cc3', '#9900ff', '#674ea7', '#351c75', '#20124d', '#180d38'],
-  // Pinks/Magentas
-  ['#ead1dc', '#d5a6bd', '#c27ba0', '#ff00ff', '#a64d79', '#741b47', '#4c1130', '#380d24'],
+  ['#c9daf8', '#6d9eeb', '#4a86e8', '#0000ff', '#1155cc', '#073763'],
+  // Purples/Pinks
+  ['#d9d2e9', '#b4a7d6', '#9900ff', '#ff00ff', '#a64d79', '#741b47'],
 ];
 
 // Initialize a color palette
@@ -47,8 +41,8 @@ export function initColorPalette(options) {
   // Set palette to display columns horizontally
   palette.style.cssText = `
     display: flex;
-    gap: 4px;
-    padding: 4px;
+    gap: 2px;
+    padding: 2px;
   `;
 
   // Create each column as a separate palette group
@@ -59,17 +53,17 @@ export function initColorPalette(options) {
       display: flex;
       flex-direction: column;
       gap: 1px;
-      padding: 2px;
+      padding: 1px;
       background: #e0e0e0;
-      border-radius: 3px;
+      border-radius: 2px;
     `;
 
     columnColors.forEach(color => {
       const swatch = document.createElement('div');
       swatch.className = 'color-swatch';
       swatch.style.cssText = `
-        width: 16px;
-        height: 16px;
+        width: 20px;
+        height: 20px;
         background-color: ${color};
         border: 1px solid rgba(0,0,0,0.15);
         cursor: pointer;
@@ -163,6 +157,228 @@ function updateAnnotationColor(colorInputId, color) {
   } else {
     redrawAnnotations();
   }
+}
+
+// Initialize a preferences color palette (without annotation update logic)
+export function initPrefColorPalette(options) {
+  const { paletteId, colorInputId, previewId, hexId, customBtnId, buttonId, dropdownId, noneCheckboxId } = options;
+
+  const palette = document.getElementById(paletteId);
+  const colorInput = document.getElementById(colorInputId);
+  const preview = document.getElementById(previewId);
+  const hexLabel = document.getElementById(hexId);
+  const customBtn = document.getElementById(customBtnId);
+  const button = document.getElementById(buttonId);
+  const dropdown = document.getElementById(dropdownId);
+  const noneCheckbox = noneCheckboxId ? document.getElementById(noneCheckboxId) : null;
+
+  if (!palette) return;
+
+  // Clear existing content
+  palette.innerHTML = '';
+
+  // Set palette to display columns horizontally
+  palette.style.cssText = `
+    display: flex;
+    gap: 2px;
+    padding: 2px;
+  `;
+
+  // Create each column as a separate palette group
+  PALETTE_COLUMNS.forEach(columnColors => {
+    const column = document.createElement('div');
+    column.className = 'color-column';
+    column.style.cssText = `
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      padding: 1px;
+      background: #e0e0e0;
+      border-radius: 2px;
+    `;
+
+    columnColors.forEach(color => {
+      const swatch = document.createElement('div');
+      swatch.className = 'color-swatch';
+      swatch.style.cssText = `
+        width: 20px;
+        height: 20px;
+        background-color: ${color};
+        border: 1px solid rgba(0,0,0,0.15);
+        cursor: pointer;
+        border-radius: 2px;
+        transition: transform 0.1s;
+      `;
+      swatch.dataset.color = color;
+
+      swatch.addEventListener('click', () => {
+        if (colorInput) colorInput.value = color;
+        if (preview) preview.style.backgroundColor = color;
+        if (hexLabel) hexLabel.textContent = color.toUpperCase();
+        if (dropdown) dropdown.classList.remove('show');
+        // Uncheck "None" if it exists
+        if (noneCheckbox) noneCheckbox.checked = false;
+        // Enable button if it was disabled
+        if (button) button.disabled = false;
+      });
+
+      swatch.addEventListener('mouseenter', () => {
+        swatch.style.transform = 'scale(1.2)';
+        swatch.style.zIndex = '1';
+      });
+      swatch.addEventListener('mouseleave', () => {
+        swatch.style.transform = 'scale(1)';
+        swatch.style.zIndex = '0';
+      });
+
+      column.appendChild(swatch);
+    });
+
+    palette.appendChild(column);
+  });
+
+  // Custom color button
+  if (customBtn && colorInput) {
+    customBtn.addEventListener('click', () => {
+      colorInput.click();
+    });
+
+    colorInput.addEventListener('input', () => {
+      const color = colorInput.value;
+      if (preview) preview.style.backgroundColor = color;
+      if (hexLabel) hexLabel.textContent = color.toUpperCase();
+      // Uncheck "None" if it exists
+      if (noneCheckbox) noneCheckbox.checked = false;
+      // Enable button if it was disabled
+      if (button) button.disabled = false;
+    });
+  }
+
+  // Toggle dropdown
+  if (button && dropdown) {
+    button.addEventListener('click', (e) => {
+      if (button.disabled) return;
+      e.stopPropagation();
+      // Close other dropdowns first
+      document.querySelectorAll('.color-palette-dropdown').forEach(d => {
+        if (d !== dropdown) d.classList.remove('show');
+      });
+      dropdown.classList.toggle('show');
+    });
+  }
+
+  // Handle "None" checkbox
+  if (noneCheckbox && button) {
+    noneCheckbox.addEventListener('change', () => {
+      button.disabled = noneCheckbox.checked;
+    });
+  }
+}
+
+// Initialize all preferences color palettes
+export function initAllPrefColorPalettes() {
+  // Default annotation color
+  initPrefColorPalette({
+    paletteId: 'pref-default-color-palette',
+    colorInputId: 'pref-default-color',
+    previewId: 'pref-default-color-preview',
+    hexId: 'pref-default-color-hex',
+    customBtnId: 'pref-default-color-custom-btn',
+    buttonId: 'pref-default-color-btn',
+    dropdownId: 'pref-default-color-dropdown'
+  });
+
+  // TextBox fill color
+  initPrefColorPalette({
+    paletteId: 'pref-textbox-fill-color-palette',
+    colorInputId: 'pref-textbox-fill-color',
+    previewId: 'pref-textbox-fill-color-preview',
+    hexId: 'pref-textbox-fill-color-hex',
+    customBtnId: 'pref-textbox-fill-color-custom-btn',
+    buttonId: 'pref-textbox-fill-color-btn',
+    dropdownId: 'pref-textbox-fill-color-dropdown',
+    noneCheckboxId: 'pref-textbox-fill-none'
+  });
+
+  // TextBox stroke color
+  initPrefColorPalette({
+    paletteId: 'pref-textbox-stroke-color-palette',
+    colorInputId: 'pref-textbox-stroke-color',
+    previewId: 'pref-textbox-stroke-color-preview',
+    hexId: 'pref-textbox-stroke-color-hex',
+    customBtnId: 'pref-textbox-stroke-color-custom-btn',
+    buttonId: 'pref-textbox-stroke-color-btn',
+    dropdownId: 'pref-textbox-stroke-color-dropdown'
+  });
+
+  // Callout fill color
+  initPrefColorPalette({
+    paletteId: 'pref-callout-fill-color-palette',
+    colorInputId: 'pref-callout-fill-color',
+    previewId: 'pref-callout-fill-color-preview',
+    hexId: 'pref-callout-fill-color-hex',
+    customBtnId: 'pref-callout-fill-color-custom-btn',
+    buttonId: 'pref-callout-fill-color-btn',
+    dropdownId: 'pref-callout-fill-color-dropdown',
+    noneCheckboxId: 'pref-callout-fill-none'
+  });
+
+  // Callout stroke color
+  initPrefColorPalette({
+    paletteId: 'pref-callout-stroke-color-palette',
+    colorInputId: 'pref-callout-stroke-color',
+    previewId: 'pref-callout-stroke-color-preview',
+    hexId: 'pref-callout-stroke-color-hex',
+    customBtnId: 'pref-callout-stroke-color-custom-btn',
+    buttonId: 'pref-callout-stroke-color-btn',
+    dropdownId: 'pref-callout-stroke-color-dropdown'
+  });
+
+  // Rectangle fill color
+  initPrefColorPalette({
+    paletteId: 'pref-rect-fill-color-palette',
+    colorInputId: 'pref-rect-fill-color',
+    previewId: 'pref-rect-fill-color-preview',
+    hexId: 'pref-rect-fill-color-hex',
+    customBtnId: 'pref-rect-fill-color-custom-btn',
+    buttonId: 'pref-rect-fill-color-btn',
+    dropdownId: 'pref-rect-fill-color-dropdown',
+    noneCheckboxId: 'pref-rect-fill-none'
+  });
+
+  // Rectangle stroke color
+  initPrefColorPalette({
+    paletteId: 'pref-rect-stroke-color-palette',
+    colorInputId: 'pref-rect-stroke-color',
+    previewId: 'pref-rect-stroke-color-preview',
+    hexId: 'pref-rect-stroke-color-hex',
+    customBtnId: 'pref-rect-stroke-color-custom-btn',
+    buttonId: 'pref-rect-stroke-color-btn',
+    dropdownId: 'pref-rect-stroke-color-dropdown'
+  });
+
+  // Ellipse fill color
+  initPrefColorPalette({
+    paletteId: 'pref-circle-fill-color-palette',
+    colorInputId: 'pref-circle-fill-color',
+    previewId: 'pref-circle-fill-color-preview',
+    hexId: 'pref-circle-fill-color-hex',
+    customBtnId: 'pref-circle-fill-color-custom-btn',
+    buttonId: 'pref-circle-fill-color-btn',
+    dropdownId: 'pref-circle-fill-color-dropdown',
+    noneCheckboxId: 'pref-circle-fill-none'
+  });
+
+  // Ellipse stroke color
+  initPrefColorPalette({
+    paletteId: 'pref-circle-stroke-color-palette',
+    colorInputId: 'pref-circle-stroke-color',
+    previewId: 'pref-circle-stroke-color-preview',
+    hexId: 'pref-circle-stroke-color-hex',
+    customBtnId: 'pref-circle-stroke-color-custom-btn',
+    buttonId: 'pref-circle-stroke-color-btn',
+    dropdownId: 'pref-circle-stroke-color-dropdown'
+  });
 }
 
 // Initialize all color palettes
