@@ -16,6 +16,8 @@ import { initMenus } from './ui/menus.js';
 import { initRibbon } from './ui/ribbon.js';
 import { initContextMenus } from './ui/context-menus.js';
 import { initAnnotationsList } from './ui/annotations-list.js';
+import { initAttachments } from './ui/attachments.js';
+import { initLinks } from './ui/links.js';
 import { initAllColorPalettes, initAllPrefColorPalettes } from './ui/color-palette.js';
 import { updateAllStatus } from './ui/status-bar.js';
 import { initLeftPanel } from './ui/left-panel.js';
@@ -36,13 +38,10 @@ import { initTabs, createTab } from './ui/tabs.js';
 import { initFindBar } from './search/find-bar.js';
 
 // Tauri API
-import { isTauri, getOpenedFile, loadSession, saveSession, fileExists } from './tauri-api.js';
+import { isTauri, isDevMode, getOpenedFile, loadSession, saveSession, fileExists } from './tauri-api.js';
 
-// Disable default browser context menu in production
+// Disable default browser context menu
 function disableDefaultContextMenu() {
-  // Only disable in Tauri (production) environment
-  if (!isTauri()) return;
-
   document.addEventListener('contextmenu', (e) => {
     // Allow context menu on input/textarea for copy/paste
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
@@ -55,7 +54,7 @@ function disableDefaultContextMenu() {
 // Initialize application
 async function init() {
   // Disable browser context menu in production
-  disableDefaultContextMenu();
+  await disableDefaultContextMenu();
 
   // Initialize canvas contexts
   initCanvasContexts();
@@ -70,6 +69,8 @@ async function init() {
   initDocPropertiesDialog();
   initContextMenus();
   initAnnotationsList();
+  initAttachments();
+  initLinks();
   initAllColorPalettes();
   initAllPrefColorPalettes();
   initLeftPanel();

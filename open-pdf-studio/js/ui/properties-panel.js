@@ -119,7 +119,8 @@ export function showProperties(annotation) {
       if (!annotation.fillColor) {
         // Show "None" state
         if (fillPreview) {
-          fillPreview.style.background = 'linear-gradient(135deg, #fff 45%, #ff0000 45%, #ff0000 55%, #fff 55%)';
+          const surfaceColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-surface').trim() || '#fff';
+          fillPreview.style.background = `linear-gradient(135deg, ${surfaceColor} 45%, #ff0000 45%, #ff0000 55%, ${surfaceColor} 55%)`;
         }
         if (fillHex) {
           fillHex.textContent = 'None';
@@ -431,7 +432,7 @@ function renderReplies(annotation) {
   const replies = annotation.replies || [];
   if (replies.length === 0) {
     const empty = document.createElement('div');
-    empty.style.cssText = 'font-size: 11px; color: #888; font-style: italic; padding: 4px 0;';
+    empty.style.cssText = 'font-size: 11px; color: var(--theme-text-secondary); font-style: italic; padding: 4px 0;';
     empty.textContent = 'No replies yet.';
     list.appendChild(empty);
     return;
@@ -440,15 +441,15 @@ function renderReplies(annotation) {
   for (let i = 0; i < replies.length; i++) {
     const reply = replies[i];
     const item = document.createElement('div');
-    item.style.cssText = 'padding: 4px 0; border-bottom: 1px solid #eee; font-size: 11px;';
+    item.style.cssText = 'padding: 4px 0; border-bottom: 1px solid var(--theme-border); font-size: 11px;';
 
     const header = document.createElement('div');
-    header.style.cssText = 'display: flex; justify-content: space-between; color: #666;';
+    header.style.cssText = 'display: flex; justify-content: space-between; color: var(--theme-text-secondary);';
     header.innerHTML = `<strong>${reply.author || 'User'}</strong><span>${formatDate(reply.createdAt)}</span>`;
     item.appendChild(header);
 
     const text = document.createElement('div');
-    text.style.cssText = 'color: #333; margin-top: 2px;';
+    text.style.cssText = 'color: var(--theme-text); margin-top: 2px;';
     text.textContent = reply.text;
     item.appendChild(text);
 

@@ -138,19 +138,284 @@ export function finishTextEditing() {
   }
 }
 
+// Show the text annotation dialog and return a promise with the result
+function showTextAnnotationDialog() {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('text-annot-dialog');
+    if (!overlay) { resolve(null); return; }
+
+    const dialog = overlay.querySelector('.text-annot-dialog');
+    const input = document.getElementById('text-annot-input');
+    const preview = document.getElementById('text-annot-preview');
+    const charCount = document.getElementById('text-annot-char-count');
+    const fontFamily = document.getElementById('text-annot-font-family');
+    const fontSize = document.getElementById('text-annot-font-size');
+    const colorInput = document.getElementById('text-annot-color');
+    const colorPreview = document.getElementById('text-annot-color-preview');
+    const boldBtn = document.getElementById('text-annot-bold');
+    const italicBtn = document.getElementById('text-annot-italic');
+    const underlineBtn = document.getElementById('text-annot-underline');
+    const alignLeftBtn = document.getElementById('text-annot-align-left');
+    const alignCenterBtn = document.getElementById('text-annot-align-center');
+    const alignRightBtn = document.getElementById('text-annot-align-right');
+    const okBtn = document.getElementById('text-annot-ok-btn');
+    const cancelBtn = document.getElementById('text-annot-cancel-btn');
+    const closeBtn = document.getElementById('text-annot-close-btn');
+
+    // State
+    let isBold = false;
+    let isItalic = false;
+    let isUnderline = false;
+    let textAlign = 'left';
+
+    // Reset dialog to defaults
+    const prefs = state.preferences || {};
+    input.value = '';
+    fontFamily.value = 'Arial';
+    fontSize.value = String(prefs.defaultFontSize || 16);
+    colorInput.value = prefs.defaultAnnotationColor || '#000000';
+    colorPreview.style.backgroundColor = colorInput.value;
+    boldBtn.classList.remove('active');
+    italicBtn.classList.remove('active');
+    underlineBtn.classList.remove('active');
+    alignLeftBtn.classList.add('active');
+    alignCenterBtn.classList.remove('active');
+    alignRightBtn.classList.remove('active');
+
+    // Reset textarea styling
+    input.style.fontFamily = 'Arial';
+    input.style.fontSize = (prefs.defaultFontSize || 16) + 'px';
+    input.style.color = colorInput.value;
+    input.style.fontWeight = 'normal';
+    input.style.fontStyle = 'normal';
+    input.style.textDecoration = 'none';
+    input.style.textAlign = 'left';
+
+    // Reset position
+    if (dialog) {
+      dialog.style.left = '50%';
+      dialog.style.top = '50%';
+      dialog.style.transform = 'translate(-50%, -50%)';
+      dialog.style.position = 'absolute';
+    }
+
+    function updatePreview() {
+      if (!preview) return;
+      const text = input.value || 'Sample text';
+      const style = (isItalic ? 'italic ' : '') + (isBold ? 'bold ' : '');
+      const decoration = isUnderline ? 'underline' : 'none';
+      preview.style.fontFamily = fontFamily.value;
+      preview.style.fontSize = fontSize.value + 'px';
+      preview.style.color = colorInput.value;
+      preview.style.fontStyle = isItalic ? 'italic' : 'normal';
+      preview.style.fontWeight = isBold ? 'bold' : 'normal';
+      preview.style.textDecoration = decoration;
+      preview.style.textAlign = textAlign;
+      preview.textContent = text;
+    }
+
+    function updateCharCount() {
+      if (charCount) charCount.textContent = input.value.length;
+    }
+
+    function cleanup() {
+      overlay.classList.remove('visible');
+      input.removeEventListener('input', onInput);
+      fontFamily.removeEventListener('change', updatePreview);
+      fontSize.removeEventListener('change', updatePreview);
+      colorInput.removeEventListener('input', onColorChange);
+      boldBtn.removeEventListener('click', onBold);
+      italicBtn.removeEventListener('click', onItalic);
+      underlineBtn.removeEventListener('click', onUnderline);
+      alignLeftBtn.removeEventListener('click', onAlignLeft);
+      alignCenterBtn.removeEventListener('click', onAlignCenter);
+      alignRightBtn.removeEventListener('click', onAlignRight);
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      closeBtn.removeEventListener('click', onCancel);
+      document.removeEventListener('keydown', onKeydown);
+    }
+
+    function onInput() {
+      updatePreview();
+      updateCharCount();
+      // Sync textarea style to match formatting
+      input.style.fontFamily = fontFamily.value;
+      input.style.fontSize = fontSize.value + 'px';
+      input.style.color = colorInput.value;
+      input.style.fontWeight = isBold ? 'bold' : 'normal';
+      input.style.fontStyle = isItalic ? 'italic' : 'normal';
+      input.style.textDecoration = isUnderline ? 'underline' : 'none';
+      input.style.textAlign = textAlign;
+    }
+
+    function onColorChange() {
+      colorPreview.style.backgroundColor = colorInput.value;
+      input.style.color = colorInput.value;
+      updatePreview();
+    }
+
+    function onBold() {
+      isBold = !isBold;
+      boldBtn.classList.toggle('active', isBold);
+      input.style.fontWeight = isBold ? 'bold' : 'normal';
+      updatePreview();
+    }
+
+    function onItalic() {
+      isItalic = !isItalic;
+      italicBtn.classList.toggle('active', isItalic);
+      input.style.fontStyle = isItalic ? 'italic' : 'normal';
+      updatePreview();
+    }
+
+    function onUnderline() {
+      isUnderline = !isUnderline;
+      underlineBtn.classList.toggle('active', isUnderline);
+      input.style.textDecoration = isUnderline ? 'underline' : 'none';
+      updatePreview();
+    }
+
+    function setAlign(align) {
+      textAlign = align;
+      alignLeftBtn.classList.toggle('active', align === 'left');
+      alignCenterBtn.classList.toggle('active', align === 'center');
+      alignRightBtn.classList.toggle('active', align === 'right');
+      input.style.textAlign = align;
+      updatePreview();
+    }
+
+    function onAlignLeft() { setAlign('left'); }
+    function onAlignCenter() { setAlign('center'); }
+    function onAlignRight() { setAlign('right'); }
+
+    function onOk() {
+      const text = input.value;
+      if (!text.trim()) { cleanup(); resolve(null); return; }
+      cleanup();
+      resolve({
+        text,
+        fontFamily: fontFamily.value,
+        fontSize: parseInt(fontSize.value),
+        color: colorInput.value,
+        fontBold: isBold,
+        fontItalic: isItalic,
+        fontUnderline: isUnderline,
+        textAlign: textAlign
+      });
+    }
+
+    function onCancel() {
+      cleanup();
+      resolve(null);
+    }
+
+    function onKeydown(e) {
+      if (!overlay.classList.contains('visible')) return;
+      if (e.key === 'Escape') {
+        onCancel();
+      } else if (e.key === 'Enter' && e.ctrlKey) {
+        onOk();
+      } else if (e.ctrlKey && e.key === 'b') {
+        e.preventDefault();
+        onBold();
+      } else if (e.ctrlKey && e.key === 'i') {
+        e.preventDefault();
+        onItalic();
+      } else if (e.ctrlKey && e.key === 'u') {
+        e.preventDefault();
+        onUnderline();
+      }
+    }
+
+    // Wire up events
+    input.addEventListener('input', onInput);
+    fontFamily.addEventListener('change', () => { onInput(); updatePreview(); });
+    fontSize.addEventListener('change', () => { onInput(); updatePreview(); });
+    colorInput.addEventListener('input', onColorChange);
+    boldBtn.addEventListener('click', onBold);
+    italicBtn.addEventListener('click', onItalic);
+    underlineBtn.addEventListener('click', onUnderline);
+    alignLeftBtn.addEventListener('click', onAlignLeft);
+    alignCenterBtn.addEventListener('click', onAlignCenter);
+    alignRightBtn.addEventListener('click', onAlignRight);
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    closeBtn.addEventListener('click', onCancel);
+    document.addEventListener('keydown', onKeydown);
+
+    // Make dialog draggable
+    initTextAnnotDialogDrag(overlay, dialog);
+
+    // Show
+    overlay.classList.add('visible');
+    updatePreview();
+    updateCharCount();
+    input.focus();
+  });
+}
+
+// Drag functionality for the text annotation dialog (initialized once)
+let _textAnnotDragInitialized = false;
+function initTextAnnotDialogDrag(overlay, dialog) {
+  if (_textAnnotDragInitialized) return;
+  _textAnnotDragInitialized = true;
+
+  const header = dialog.querySelector('.text-annot-header');
+  if (!header) return;
+
+  let isDragging = false;
+  let dragOffsetX = 0;
+  let dragOffsetY = 0;
+
+  header.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.text-annot-close-btn')) return;
+    isDragging = true;
+    const rect = dialog.getBoundingClientRect();
+    dragOffsetX = e.clientX - rect.left;
+    dragOffsetY = e.clientY - rect.top;
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const overlayRect = overlay.getBoundingClientRect();
+    let newX = e.clientX - overlayRect.left - dragOffsetX;
+    let newY = e.clientY - overlayRect.top - dragOffsetY;
+    const dialogRect = dialog.getBoundingClientRect();
+    const maxX = overlayRect.width - dialogRect.width;
+    const maxY = overlayRect.height - dialogRect.height;
+    newX = Math.max(0, Math.min(newX, maxX));
+    newY = Math.max(0, Math.min(newY, maxY));
+    dialog.style.left = newX + 'px';
+    dialog.style.top = newY + 'px';
+    dialog.style.transform = 'none';
+    dialog.style.position = 'absolute';
+  });
+
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+  });
+}
+
 // Add text annotation at position
-export function addTextAnnotation(x, y) {
-  const text = prompt('Enter text:');
-  if (text) {
+export async function addTextAnnotation(x, y) {
+  const result = await showTextAnnotationDialog();
+  if (result) {
     const annotation = {
       id: Date.now().toString(36) + Math.random().toString(36).substr(2, 9),
       type: 'text',
       page: state.currentPage,
       x: x,
       y: y,
-      text: text,
-      fontSize: state.preferences?.defaultFontSize || 16,
-      color: state.preferences?.defaultAnnotationColor || '#000000',
+      text: result.text,
+      fontSize: result.fontSize,
+      fontFamily: result.fontFamily,
+      fontBold: result.fontBold,
+      fontItalic: result.fontItalic,
+      fontUnderline: result.fontUnderline,
+      textAlign: result.textAlign,
+      color: result.color,
       author: state.defaultAuthor,
       createdAt: new Date().toISOString(),
       modifiedAt: new Date().toISOString(),

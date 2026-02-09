@@ -39,8 +39,22 @@ function getSystemUsername() {
   }
 }
 
+// Apply theme to the document
+export function applyTheme(themeName) {
+  document.documentElement.setAttribute('data-theme', themeName);
+  const themeSelect = document.getElementById('theme-select');
+  if (themeSelect && themeSelect.value !== themeName) {
+    themeSelect.value = themeName;
+  }
+}
+
 // Apply preferences to the application
 export function applyPreferences() {
+  // Apply theme
+  if (state.preferences.theme) {
+    applyTheme(state.preferences.theme);
+  }
+
   // Update default author - use system username if not customized
   const savedAuthor = state.preferences.authorName;
   if (!savedAuthor || savedAuthor === 'User') {
@@ -154,6 +168,57 @@ export function showPreferencesDialog(tabName = 'general') {
   document.getElementById('pref-circle-border-width').value = prefs.circleBorderWidth;
   document.getElementById('pref-circle-border-style').value = prefs.circleBorderStyle;
   document.getElementById('pref-circle-opacity').value = prefs.circleOpacity;
+
+  // Highlight defaults
+  updateColorPicker('pref-highlight-color', 'pref-highlight-color-preview', 'pref-highlight-color-hex', prefs.highlightColor);
+
+  // Comment/Note defaults
+  updateColorPicker('pref-comment-color', 'pref-comment-color-preview', 'pref-comment-color-hex', prefs.commentColor);
+  document.getElementById('pref-comment-icon').value = prefs.commentIcon;
+
+  // Draw/Freehand defaults
+  updateColorPicker('pref-draw-stroke-color', 'pref-draw-stroke-color-preview', 'pref-draw-stroke-color-hex', prefs.drawStrokeColor);
+  document.getElementById('pref-draw-line-width').value = prefs.drawLineWidth;
+  document.getElementById('pref-draw-opacity').value = prefs.drawOpacity;
+
+  // Line defaults
+  updateColorPicker('pref-line-stroke-color', 'pref-line-stroke-color-preview', 'pref-line-stroke-color-hex', prefs.lineStrokeColor);
+  document.getElementById('pref-line-line-width').value = prefs.lineLineWidth;
+  document.getElementById('pref-line-border-style').value = prefs.lineBorderStyle;
+  document.getElementById('pref-line-opacity').value = prefs.lineOpacity;
+
+  // Arrow defaults
+  updateColorPicker('pref-arrow-stroke-color', 'pref-arrow-stroke-color-preview', 'pref-arrow-stroke-color-hex', prefs.arrowStrokeColor);
+  updateColorPicker('pref-arrow-fill-color', 'pref-arrow-fill-color-preview', 'pref-arrow-fill-color-hex', prefs.arrowFillColor);
+  document.getElementById('pref-arrow-line-width').value = prefs.arrowLineWidth;
+  document.getElementById('pref-arrow-border-style').value = prefs.arrowBorderStyle;
+  document.getElementById('pref-arrow-start-head').value = prefs.arrowStartHead;
+  document.getElementById('pref-arrow-end-head').value = prefs.arrowEndHead;
+  document.getElementById('pref-arrow-head-size').value = prefs.arrowHeadSize;
+  document.getElementById('pref-arrow-opacity').value = prefs.arrowOpacity;
+
+  // Polyline defaults
+  updateColorPicker('pref-polyline-stroke-color', 'pref-polyline-stroke-color-preview', 'pref-polyline-stroke-color-hex', prefs.polylineStrokeColor);
+  document.getElementById('pref-polyline-line-width').value = prefs.polylineLineWidth;
+  document.getElementById('pref-polyline-opacity').value = prefs.polylineOpacity;
+
+  // Polygon defaults
+  updateColorPicker('pref-polygon-stroke-color', 'pref-polygon-stroke-color-preview', 'pref-polygon-stroke-color-hex', prefs.polygonStrokeColor);
+  document.getElementById('pref-polygon-line-width').value = prefs.polygonLineWidth;
+  document.getElementById('pref-polygon-opacity').value = prefs.polygonOpacity;
+
+  // Cloud defaults
+  updateColorPicker('pref-cloud-stroke-color', 'pref-cloud-stroke-color-preview', 'pref-cloud-stroke-color-hex', prefs.cloudStrokeColor);
+  document.getElementById('pref-cloud-line-width').value = prefs.cloudLineWidth;
+  document.getElementById('pref-cloud-opacity').value = prefs.cloudOpacity;
+
+  // Redaction defaults
+  updateColorPicker('pref-redaction-color', 'pref-redaction-color-preview', 'pref-redaction-color-hex', prefs.redactionOverlayColor);
+
+  // Measurement defaults
+  updateColorPicker('pref-measure-stroke-color', 'pref-measure-stroke-color-preview', 'pref-measure-stroke-color-hex', prefs.measureStrokeColor);
+  document.getElementById('pref-measure-line-width').value = prefs.measureLineWidth;
+  document.getElementById('pref-measure-opacity').value = prefs.measureOpacity;
 
   // Check current default PDF app
   checkDefaultPdfApp();
@@ -286,6 +351,57 @@ export function savePreferencesFromDialog() {
   prefs.circleBorderStyle = document.getElementById('pref-circle-border-style').value;
   prefs.circleOpacity = parseInt(document.getElementById('pref-circle-opacity').value) || 100;
 
+  // Highlight defaults
+  prefs.highlightColor = document.getElementById('pref-highlight-color').value;
+
+  // Comment/Note defaults
+  prefs.commentColor = document.getElementById('pref-comment-color').value;
+  prefs.commentIcon = document.getElementById('pref-comment-icon').value;
+
+  // Draw/Freehand defaults
+  prefs.drawStrokeColor = document.getElementById('pref-draw-stroke-color').value;
+  prefs.drawLineWidth = parseInt(document.getElementById('pref-draw-line-width').value) || 3;
+  prefs.drawOpacity = parseInt(document.getElementById('pref-draw-opacity').value) || 100;
+
+  // Line defaults
+  prefs.lineStrokeColor = document.getElementById('pref-line-stroke-color').value;
+  prefs.lineLineWidth = parseInt(document.getElementById('pref-line-line-width').value) || 2;
+  prefs.lineBorderStyle = document.getElementById('pref-line-border-style').value;
+  prefs.lineOpacity = parseInt(document.getElementById('pref-line-opacity').value) || 100;
+
+  // Arrow defaults
+  prefs.arrowStrokeColor = document.getElementById('pref-arrow-stroke-color').value;
+  prefs.arrowFillColor = document.getElementById('pref-arrow-fill-color').value;
+  prefs.arrowLineWidth = parseInt(document.getElementById('pref-arrow-line-width').value) || 2;
+  prefs.arrowBorderStyle = document.getElementById('pref-arrow-border-style').value;
+  prefs.arrowStartHead = document.getElementById('pref-arrow-start-head').value;
+  prefs.arrowEndHead = document.getElementById('pref-arrow-end-head').value;
+  prefs.arrowHeadSize = parseInt(document.getElementById('pref-arrow-head-size').value) || 12;
+  prefs.arrowOpacity = parseInt(document.getElementById('pref-arrow-opacity').value) || 100;
+
+  // Polyline defaults
+  prefs.polylineStrokeColor = document.getElementById('pref-polyline-stroke-color').value;
+  prefs.polylineLineWidth = parseInt(document.getElementById('pref-polyline-line-width').value) || 2;
+  prefs.polylineOpacity = parseInt(document.getElementById('pref-polyline-opacity').value) || 100;
+
+  // Polygon defaults
+  prefs.polygonStrokeColor = document.getElementById('pref-polygon-stroke-color').value;
+  prefs.polygonLineWidth = parseInt(document.getElementById('pref-polygon-line-width').value) || 2;
+  prefs.polygonOpacity = parseInt(document.getElementById('pref-polygon-opacity').value) || 100;
+
+  // Cloud defaults
+  prefs.cloudStrokeColor = document.getElementById('pref-cloud-stroke-color').value;
+  prefs.cloudLineWidth = parseInt(document.getElementById('pref-cloud-line-width').value) || 2;
+  prefs.cloudOpacity = parseInt(document.getElementById('pref-cloud-opacity').value) || 100;
+
+  // Redaction defaults
+  prefs.redactionOverlayColor = document.getElementById('pref-redaction-color').value;
+
+  // Measurement defaults
+  prefs.measureStrokeColor = document.getElementById('pref-measure-stroke-color').value;
+  prefs.measureLineWidth = parseInt(document.getElementById('pref-measure-line-width').value) || 1;
+  prefs.measureOpacity = parseInt(document.getElementById('pref-measure-opacity').value) || 100;
+
   savePreferences();
   hidePreferencesDialog();
 }
@@ -369,6 +485,21 @@ export function setAsDefaultStyle(annotation) {
     case 'comment':
       prefs.commentColor = annotation.color || prefs.commentColor;
       if (annotation.icon) prefs.commentIcon = annotation.icon;
+      break;
+    case 'polyline':
+      prefs.polylineStrokeColor = annotation.strokeColor || annotation.color || prefs.polylineStrokeColor;
+      prefs.polylineLineWidth = annotation.lineWidth || prefs.polylineLineWidth;
+      if (annotation.opacity !== undefined) prefs.polylineOpacity = Math.round(annotation.opacity * 100);
+      break;
+    case 'redaction':
+      prefs.redactionOverlayColor = annotation.overlayColor || prefs.redactionOverlayColor;
+      break;
+    case 'measureDistance':
+    case 'measureArea':
+    case 'measurePerimeter':
+      prefs.measureStrokeColor = annotation.strokeColor || annotation.color || prefs.measureStrokeColor;
+      prefs.measureLineWidth = annotation.lineWidth || prefs.measureLineWidth;
+      if (annotation.opacity !== undefined) prefs.measureOpacity = Math.round(annotation.opacity * 100);
       break;
   }
 

@@ -65,6 +65,11 @@ async fn open_url(url: String) -> Result<(), String> {
     open::that(&url).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn is_dev_mode() -> bool {
+    cfg!(debug_assertions)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Check for PDF file in command line arguments
@@ -91,7 +96,8 @@ pub fn run() {
             read_file,
             write_file,
             file_exists,
-            open_url
+            open_url,
+            is_dev_mode
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

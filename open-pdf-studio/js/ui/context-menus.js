@@ -8,6 +8,7 @@ import { bringToFront, sendToBack, bringForward, sendBackward, rotateAnnotation,
 import { startTextEditing } from '../tools/text-editing.js';
 import { createTextMarkupAnnotation } from '../text/text-markup.js';
 import { setAsDefaultStyle } from '../core/preferences.js';
+import { setTool } from '../tools/manager.js';
 import { alignAnnotations } from '../annotations/smart-guides.js';
 import { getSelectedText, getSelectionRectsForAnnotation, clearTextSelection } from '../text/text-selection.js';
 
@@ -302,6 +303,16 @@ export function hideContextMenu() {
 
 // Initialize context menus
 export function initContextMenus() {
+  // Right-click deactivates annotation tool when not mid-draw
+  document.addEventListener('contextmenu', (e) => {
+    const nonDrawTools = ['select', 'hand'];
+    if (!nonDrawTools.includes(state.currentTool) && !state.isDrawing && !state.isDrawingPolyline && !(state.measurePoints && state.measurePoints.length >= 1)) {
+      e.preventDefault();
+      e.stopPropagation();
+      setTool('select');
+    }
+  }, true);
+
   // Context menu on annotation canvas
   if (annotationCanvas) {
     annotationCanvas.addEventListener('contextmenu', (e) => {
@@ -314,15 +325,17 @@ export function initContextMenus() {
           import('../annotations/measurement.js').then(({ calculateArea, calculatePerimeter, formatMeasurement }) => {
             const points = [...state.measurePoints];
             let ann;
+            const mPrefs = state.preferences;
             if (state.currentTool === 'measureArea' && points.length >= 3) {
               const area = calculateArea(points);
               ann = createAnnotation({
                 type: 'measureArea',
                 page: state.currentPage,
                 points: points,
-                color: '#ff0000',
-                strokeColor: '#ff0000',
-                lineWidth: 1,
+                color: mPrefs.measureStrokeColor,
+                strokeColor: mPrefs.measureStrokeColor,
+                lineWidth: mPrefs.measureLineWidth,
+                opacity: (mPrefs.measureOpacity || 100) / 100,
                 measureText: formatMeasurement(area),
                 measureValue: area.value,
                 measureUnit: area.unit
@@ -333,9 +346,10 @@ export function initContextMenus() {
                 type: 'measurePerimeter',
                 page: state.currentPage,
                 points: points,
-                color: '#ff0000',
-                strokeColor: '#ff0000',
-                lineWidth: 1,
+                color: mPrefs.measureStrokeColor,
+                strokeColor: mPrefs.measureStrokeColor,
+                lineWidth: mPrefs.measureLineWidth,
+                opacity: (mPrefs.measureOpacity || 100) / 100,
                 measureText: formatMeasurement(perim),
                 measureValue: perim.value,
                 measureUnit: perim.unit
@@ -359,15 +373,15 @@ export function initContextMenus() {
         e.preventDefault();
         import('../annotations/factory.js').then(({ createAnnotation }) => {
           if (state.polylinePoints.length >= 2) {
-            const colorPicker = document.getElementById('color-picker');
-            const lineWidthEl = document.getElementById('line-width');
+            const pPrefs = state.preferences;
             const ann = createAnnotation({
               type: 'polyline',
               page: state.currentPage,
               points: [...state.polylinePoints],
-              color: colorPicker?.value || '#000000',
-              strokeColor: colorPicker?.value || '#000000',
-              lineWidth: parseInt(lineWidthEl?.value) || 2
+              color: pPrefs.polylineStrokeColor,
+              strokeColor: pPrefs.polylineStrokeColor,
+              lineWidth: pPrefs.polylineLineWidth,
+              opacity: (pPrefs.polylineOpacity || 100) / 100
             });
             state.annotations.push(ann);
             recordAdd(ann);

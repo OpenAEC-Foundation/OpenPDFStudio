@@ -31,6 +31,9 @@ export function getSystemUsername() {
 
 // Default application preferences
 export const DEFAULT_PREFERENCES = {
+  // Theme
+  theme: 'dark',
+
   // General
   authorName: getSystemUsername(),
 
@@ -120,6 +123,19 @@ export const DEFAULT_PREFERENCES = {
   // Comment/Note defaults
   commentColor: '#ffff00',
   commentIcon: 'comment',
+
+  // Polyline defaults
+  polylineStrokeColor: '#000000',
+  polylineLineWidth: 2,
+  polylineOpacity: 100,
+
+  // Redaction defaults
+  redactionOverlayColor: '#000000',
+
+  // Measurement defaults
+  measureStrokeColor: '#ff0000',
+  measureLineWidth: 1,
+  measureOpacity: 100,
 
   // Behavior
   autoSelectAfterCreate: true,

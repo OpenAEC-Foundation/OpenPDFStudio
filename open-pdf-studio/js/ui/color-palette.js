@@ -54,7 +54,7 @@ export function initColorPalette(options) {
       flex-direction: column;
       gap: 1px;
       padding: 1px;
-      background: #e0e0e0;
+      background: var(--theme-border);
       border-radius: 2px;
     `;
 
@@ -193,7 +193,7 @@ export function initPrefColorPalette(options) {
       flex-direction: column;
       gap: 1px;
       padding: 1px;
-      background: #e0e0e0;
+      background: var(--theme-border);
       border-radius: 2px;
     `;
 
@@ -379,6 +379,127 @@ export function initAllPrefColorPalettes() {
     buttonId: 'pref-circle-stroke-color-btn',
     dropdownId: 'pref-circle-stroke-color-dropdown'
   });
+
+  // Highlight color
+  initPrefColorPalette({
+    paletteId: 'pref-highlight-color-palette',
+    colorInputId: 'pref-highlight-color',
+    previewId: 'pref-highlight-color-preview',
+    hexId: 'pref-highlight-color-hex',
+    customBtnId: 'pref-highlight-color-custom-btn',
+    buttonId: 'pref-highlight-color-btn',
+    dropdownId: 'pref-highlight-color-dropdown'
+  });
+
+  // Comment/Note color
+  initPrefColorPalette({
+    paletteId: 'pref-comment-color-palette',
+    colorInputId: 'pref-comment-color',
+    previewId: 'pref-comment-color-preview',
+    hexId: 'pref-comment-color-hex',
+    customBtnId: 'pref-comment-color-custom-btn',
+    buttonId: 'pref-comment-color-btn',
+    dropdownId: 'pref-comment-color-dropdown'
+  });
+
+  // Draw/Freehand stroke color
+  initPrefColorPalette({
+    paletteId: 'pref-draw-stroke-color-palette',
+    colorInputId: 'pref-draw-stroke-color',
+    previewId: 'pref-draw-stroke-color-preview',
+    hexId: 'pref-draw-stroke-color-hex',
+    customBtnId: 'pref-draw-stroke-color-custom-btn',
+    buttonId: 'pref-draw-stroke-color-btn',
+    dropdownId: 'pref-draw-stroke-color-dropdown'
+  });
+
+  // Line stroke color
+  initPrefColorPalette({
+    paletteId: 'pref-line-stroke-color-palette',
+    colorInputId: 'pref-line-stroke-color',
+    previewId: 'pref-line-stroke-color-preview',
+    hexId: 'pref-line-stroke-color-hex',
+    customBtnId: 'pref-line-stroke-color-custom-btn',
+    buttonId: 'pref-line-stroke-color-btn',
+    dropdownId: 'pref-line-stroke-color-dropdown'
+  });
+
+  // Arrow stroke color
+  initPrefColorPalette({
+    paletteId: 'pref-arrow-stroke-color-palette',
+    colorInputId: 'pref-arrow-stroke-color',
+    previewId: 'pref-arrow-stroke-color-preview',
+    hexId: 'pref-arrow-stroke-color-hex',
+    customBtnId: 'pref-arrow-stroke-color-custom-btn',
+    buttonId: 'pref-arrow-stroke-color-btn',
+    dropdownId: 'pref-arrow-stroke-color-dropdown'
+  });
+
+  // Arrow fill color
+  initPrefColorPalette({
+    paletteId: 'pref-arrow-fill-color-palette',
+    colorInputId: 'pref-arrow-fill-color',
+    previewId: 'pref-arrow-fill-color-preview',
+    hexId: 'pref-arrow-fill-color-hex',
+    customBtnId: 'pref-arrow-fill-color-custom-btn',
+    buttonId: 'pref-arrow-fill-color-btn',
+    dropdownId: 'pref-arrow-fill-color-dropdown'
+  });
+
+  // Polyline stroke color
+  initPrefColorPalette({
+    paletteId: 'pref-polyline-stroke-color-palette',
+    colorInputId: 'pref-polyline-stroke-color',
+    previewId: 'pref-polyline-stroke-color-preview',
+    hexId: 'pref-polyline-stroke-color-hex',
+    customBtnId: 'pref-polyline-stroke-color-custom-btn',
+    buttonId: 'pref-polyline-stroke-color-btn',
+    dropdownId: 'pref-polyline-stroke-color-dropdown'
+  });
+
+  // Polygon stroke color
+  initPrefColorPalette({
+    paletteId: 'pref-polygon-stroke-color-palette',
+    colorInputId: 'pref-polygon-stroke-color',
+    previewId: 'pref-polygon-stroke-color-preview',
+    hexId: 'pref-polygon-stroke-color-hex',
+    customBtnId: 'pref-polygon-stroke-color-custom-btn',
+    buttonId: 'pref-polygon-stroke-color-btn',
+    dropdownId: 'pref-polygon-stroke-color-dropdown'
+  });
+
+  // Cloud stroke color
+  initPrefColorPalette({
+    paletteId: 'pref-cloud-stroke-color-palette',
+    colorInputId: 'pref-cloud-stroke-color',
+    previewId: 'pref-cloud-stroke-color-preview',
+    hexId: 'pref-cloud-stroke-color-hex',
+    customBtnId: 'pref-cloud-stroke-color-custom-btn',
+    buttonId: 'pref-cloud-stroke-color-btn',
+    dropdownId: 'pref-cloud-stroke-color-dropdown'
+  });
+
+  // Redaction overlay color
+  initPrefColorPalette({
+    paletteId: 'pref-redaction-color-palette',
+    colorInputId: 'pref-redaction-color',
+    previewId: 'pref-redaction-color-preview',
+    hexId: 'pref-redaction-color-hex',
+    customBtnId: 'pref-redaction-color-custom-btn',
+    buttonId: 'pref-redaction-color-btn',
+    dropdownId: 'pref-redaction-color-dropdown'
+  });
+
+  // Measurement stroke color
+  initPrefColorPalette({
+    paletteId: 'pref-measure-stroke-color-palette',
+    colorInputId: 'pref-measure-stroke-color',
+    previewId: 'pref-measure-stroke-color-preview',
+    hexId: 'pref-measure-stroke-color-hex',
+    customBtnId: 'pref-measure-stroke-color-custom-btn',
+    buttonId: 'pref-measure-stroke-color-btn',
+    dropdownId: 'pref-measure-stroke-color-dropdown'
+  });
 }
 
 // Initialize all color palettes
@@ -443,7 +564,8 @@ export function initAllColorPalettes() {
         const preview = document.getElementById('prop-fill-color-preview');
         const hexLabel = document.getElementById('prop-fill-color-hex');
         if (preview) {
-          preview.style.background = 'linear-gradient(135deg, #fff 45%, #ff0000 45%, #ff0000 55%, #fff 55%)';
+          const surfaceColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-surface').trim() || '#fff';
+          preview.style.background = `linear-gradient(135deg, ${surfaceColor} 45%, #ff0000 45%, #ff0000 55%, ${surfaceColor} 55%)`;
         }
         if (hexLabel) {
           hexLabel.textContent = 'None';

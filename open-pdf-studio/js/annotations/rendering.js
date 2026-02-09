@@ -442,11 +442,35 @@ function drawAnnotation(ctx, annotation) {
       }
       break;
 
-    case 'text':
-      ctx.fillStyle = annotation.color;
-      ctx.font = `${annotation.fontSize || 16}px Arial`;
-      ctx.fillText(annotation.text, annotation.x, annotation.y);
+    case 'text': {
+      const txtFontFamily = annotation.fontFamily || 'Arial';
+      const txtFontStyle = (annotation.fontItalic ? 'italic ' : '') + (annotation.fontBold ? 'bold ' : '');
+      const txtFontSize = annotation.fontSize || 16;
+      ctx.fillStyle = annotation.color || '#000000';
+      ctx.font = `${txtFontStyle}${txtFontSize}px ${txtFontFamily}`;
+      ctx.textAlign = annotation.textAlign || 'left';
+
+      const lines = (annotation.text || '').split('\n');
+      let txtY = annotation.y;
+      for (let i = 0; i < lines.length; i++) {
+        ctx.fillText(lines[i], annotation.x, txtY);
+        if (annotation.fontUnderline) {
+          const lineWidth = ctx.measureText(lines[i]).width;
+          let underlineX = annotation.x;
+          if (annotation.textAlign === 'center') underlineX -= lineWidth / 2;
+          else if (annotation.textAlign === 'right') underlineX -= lineWidth;
+          ctx.beginPath();
+          ctx.moveTo(underlineX, txtY + 2);
+          ctx.lineTo(underlineX + lineWidth, txtY + 2);
+          ctx.strokeStyle = annotation.color || '#000000';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+        txtY += txtFontSize * 1.3;
+      }
+      ctx.textAlign = 'left';
       break;
+    }
 
     case 'textbox':
       // Draw text box with border and optional fill
@@ -1159,14 +1183,16 @@ function drawMultiSelectionBounds(ctx) {
 // Update quick access toolbar button states
 export function updateQuickAccessButtons() {
   const qaSave = document.getElementById('qa-save');
+  const qaSaveAs = document.getElementById('qa-save-as');
   const qaPrint = document.getElementById('qa-print');
   const qaUndo = document.getElementById('qa-undo');
   const qaRedo = document.getElementById('qa-redo');
   const qaPrevView = document.getElementById('qa-prev-view');
   const qaNextView = document.getElementById('qa-next-view');
 
-  // Save/Print - enabled when PDF is loaded
+  // Save/Save As/Print - enabled when PDF is loaded
   if (qaSave) qaSave.disabled = !state.pdfDoc;
+  if (qaSaveAs) qaSaveAs.disabled = !state.pdfDoc;
   if (qaPrint) qaPrint.disabled = !state.pdfDoc;
 
   // Undo - enabled when undo stack has entries

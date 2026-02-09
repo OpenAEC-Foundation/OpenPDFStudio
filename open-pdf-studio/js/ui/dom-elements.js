@@ -76,7 +76,7 @@ export const propLineWidthGroup = document.getElementById('prop-line-width-group
 export const propDelete = document.getElementById('prop-delete');
 export const propClose = document.getElementById('prop-close');
 
-// Properties panel elements (PDF-XChange style)
+// Properties panel elements
 export const propAuthor = document.getElementById('prop-author');
 export const propSubject = document.getElementById('prop-subject');
 export const propCreated = document.getElementById('prop-created');
@@ -139,7 +139,7 @@ export const statusAnnotations = document.getElementById('status-annotations');
 export const statusMessage = document.getElementById('status-message');
 
 // Annotations list panel elements
-export const annotationsListPanel = document.getElementById('annotations-list-panel');
+export const annotationsListPanel = document.getElementById('annotations-panel');
 export const annotationsListContent = document.getElementById('annotations-list-content');
 export const annotationsListFilter = document.getElementById('annotations-list-filter');
 export const annotationsListCount = document.getElementById('annotations-list-count');
@@ -149,9 +149,8 @@ export const leftPanel = document.getElementById('left-panel');
 export const thumbnailsContainer = document.getElementById('thumbnails-container');
 export const bookmarksContainer = document.getElementById('bookmarks-container');
 
-// Menu elements
-export const menuItems = document.querySelectorAll('.menu-item');
-export const menuDropdowns = document.querySelectorAll('.menu-dropdown');
+// Backstage elements
+export const backstageOverlay = document.getElementById('backstage-overlay');
 
 // Canvas contexts - initialized after DOM is ready
 export let pdfCtx = null;

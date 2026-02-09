@@ -2,7 +2,7 @@ import { state, createDocument, getActiveDocument, findDocumentByPath } from '..
 import { renderPage, renderContinuous, clearPdfView } from '../pdf/renderer.js';
 import { redrawAnnotations, redrawContinuous, updateQuickAccessButtons } from '../annotations/rendering.js';
 import { updateAllStatus } from '../ui/status-bar.js';
-import { generateThumbnails, clearThumbnails, clearThumbnailCache } from '../ui/left-panel.js';
+import { generateThumbnails, clearThumbnails, clearThumbnailCache, refreshActiveTab } from '../ui/left-panel.js';
 import { openPDFFile } from '../pdf/loader.js';
 
 const tabsContainer = document.getElementById('document-tabs');
@@ -90,6 +90,9 @@ export function switchToTab(index) {
 
     // Regenerate thumbnails for the new document
     generateThumbnails();
+
+    // Refresh active left panel tab content
+    refreshActiveTab();
   } else {
     // No PDF loaded for this document yet
     clearPdfView();

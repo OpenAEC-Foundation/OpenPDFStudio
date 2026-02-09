@@ -7,7 +7,7 @@ import { showDocPropertiesDialog } from '../ui/dialogs.js';
 import { copyAnnotation, copyAnnotations, pasteFromClipboard } from '../annotations/clipboard.js';
 import { redrawAnnotations, redrawContinuous } from '../annotations/rendering.js';
 import { openPDFFile } from '../pdf/loader.js';
-import { savePDFAs } from '../pdf/saver.js';
+import { savePDF, savePDFAs } from '../pdf/saver.js';
 import { toggleAnnotationsListPanel } from '../ui/annotations-list.js';
 import { toggleLeftPanel } from '../ui/left-panel.js';
 import { switchToTab } from '../ui/ribbon.js';
@@ -54,9 +54,12 @@ export function handleKeydown(e) {
   if (ctrl && e.key === 'o') {
     e.preventDefault();
     openPDFFile();
-  } else if (ctrl && e.key === 's') {
+  } else if (ctrl && shift && e.key === 's') {
     e.preventDefault();
     savePDFAs();
+  } else if (ctrl && e.key === 's') {
+    e.preventDefault();
+    savePDF();
   } else if (ctrl && e.key === 'w') {
     e.preventDefault();
     document.getElementById('menu-close')?.click();

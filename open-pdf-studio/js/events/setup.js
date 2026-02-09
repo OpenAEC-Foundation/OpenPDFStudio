@@ -25,8 +25,8 @@ import { openPDFFile, loadPDF } from '../pdf/loader.js';
 import { savePDF, savePDFAs } from '../pdf/saver.js';
 import { showProperties, hideProperties, closePropertiesPanel, updateAnnotationProperties, updateTextFormatProperties, updateArrowProperties } from '../ui/properties-panel.js';
 import { redrawAnnotations, redrawContinuous, updateQuickAccessButtons } from '../annotations/rendering.js';
-import { closeAllMenus } from '../ui/menus.js';
-import { showPreferencesDialog, hidePreferencesDialog, savePreferencesFromDialog, resetPreferencesToDefaults } from '../core/preferences.js';
+import { closeAllMenus, closeBackstage } from '../ui/menus.js';
+import { showPreferencesDialog, hidePreferencesDialog, savePreferencesFromDialog, resetPreferencesToDefaults, applyTheme, savePreferences } from '../core/preferences.js';
 import { showAboutDialog, showDocPropertiesDialog } from '../ui/dialogs.js';
 import { toggleAnnotationsListPanel } from '../ui/annotations-list.js';
 import { toggleLeftPanel } from '../ui/left-panel.js';
@@ -392,10 +392,25 @@ function setupPropertiesPanelEvents() {
   // Prevent clicks in properties panel from propagating
   propertiesPanel?.addEventListener('mousedown', (e) => e.stopPropagation());
   propertiesPanel?.addEventListener('click', (e) => e.stopPropagation());
+
+  // Collapsible sections
+  propertiesPanel?.querySelectorAll('.property-section-header').forEach(header => {
+    header.addEventListener('click', () => {
+      header.parentElement.classList.toggle('collapsed');
+    });
+  });
 }
 
 // Setup navigation event listeners
 function setupNavigationEvents() {
+  document.getElementById('first-page')?.addEventListener('click', async () => {
+    if (state.pdfDoc && state.currentPage !== 1) {
+      state.currentPage = 1;
+      hideProperties();
+      await renderPage(state.currentPage);
+    }
+  });
+
   prevPageBtn?.addEventListener('click', async () => {
     if (state.currentPage > 1) {
       state.currentPage--;
@@ -407,6 +422,14 @@ function setupNavigationEvents() {
   nextPageBtn?.addEventListener('click', async () => {
     if (state.pdfDoc && state.currentPage < state.pdfDoc.numPages) {
       state.currentPage++;
+      hideProperties();
+      await renderPage(state.currentPage);
+    }
+  });
+
+  document.getElementById('last-page')?.addEventListener('click', async () => {
+    if (state.pdfDoc && state.currentPage !== state.pdfDoc.numPages) {
+      state.currentPage = state.pdfDoc.numPages;
       hideProperties();
       await renderPage(state.currentPage);
     }
@@ -481,34 +504,39 @@ function setupNavigationEvents() {
 
 // Setup menu event listeners
 function setupMenuEvents() {
-  // File menu
-  document.getElementById('menu-open')?.addEventListener('click', () => {
-    closeAllMenus();
+  // Backstage file items
+  document.getElementById('bs-open')?.addEventListener('click', () => {
+    closeBackstage();
     openPDFFile();
   });
 
-  document.getElementById('menu-save')?.addEventListener('click', async () => {
-    closeAllMenus();
+  document.getElementById('bs-save')?.addEventListener('click', async () => {
+    closeBackstage();
     await savePDF();
   });
 
-  document.getElementById('menu-save-as')?.addEventListener('click', async () => {
-    closeAllMenus();
+  document.getElementById('bs-save-as')?.addEventListener('click', async () => {
+    closeBackstage();
     await savePDFAs();
   });
 
-  document.getElementById('menu-doc-properties')?.addEventListener('click', () => {
-    closeAllMenus();
+  document.getElementById('bs-doc-properties')?.addEventListener('click', () => {
+    closeBackstage();
     showDocPropertiesDialog();
   });
 
-  document.getElementById('menu-close')?.addEventListener('click', () => {
-    closeAllMenus();
-    closeActiveTab();
+  document.getElementById('bs-preferences')?.addEventListener('click', () => {
+    closeBackstage();
+    showPreferencesDialog();
   });
 
-  document.getElementById('menu-exit')?.addEventListener('click', async () => {
-    closeAllMenus();
+  document.getElementById('bs-about')?.addEventListener('click', () => {
+    closeBackstage();
+    showAboutDialog();
+  });
+
+  document.getElementById('bs-exit')?.addEventListener('click', async () => {
+    closeBackstage();
     if (hasUnsavedChanges()) {
       const names = getUnsavedDocumentNames().join(', ');
       let result = false;
@@ -528,11 +556,6 @@ function setupMenuEvents() {
   // Ribbon Find button
   document.getElementById('ribbon-find')?.addEventListener('click', () => {
     openFindBar();
-  });
-
-  document.getElementById('menu-preferences')?.addEventListener('click', () => {
-    closeAllMenus();
-    showPreferencesDialog();
   });
 
   // View menu
@@ -807,9 +830,19 @@ function setupFillNoneCheckboxes() {
 
 // Setup quick access toolbar events
 function setupQuickAccessEvents() {
+  // Open button
+  document.getElementById('qa-open')?.addEventListener('click', () => {
+    openPDFFile();
+  });
+
   // Save button
   document.getElementById('qa-save')?.addEventListener('click', async () => {
     await savePDF();
+  });
+
+  // Save As button
+  document.getElementById('qa-save-as')?.addEventListener('click', async () => {
+    await savePDFAs();
   });
 
   // Print button
@@ -925,6 +958,13 @@ function setupRibbonEvents() {
         redrawAnnotations();
       }
     }
+  });
+
+  // Theme selector
+  document.getElementById('theme-select')?.addEventListener('change', (e) => {
+    state.preferences.theme = e.target.value;
+    applyTheme(e.target.value);
+    savePreferences();
   });
 }
 

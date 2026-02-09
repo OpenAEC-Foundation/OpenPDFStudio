@@ -1,57 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OpenPDFStudio</title>
   <script src="pdfjs/build/pdf.mjs" type="module" id="pdfjs-script"></script>
   <link rel="stylesheet" href="styles.css">
+  <script>
+    try { const p = JSON.parse(localStorage.getItem('pdfEditorPreferences') || '{}');
+      if (p.theme) document.documentElement.setAttribute('data-theme', p.theme);
+    } catch(e) {}
+  </script>
 </head>
 <body>
   <!-- Title Bar -->
   <div class="title-bar" data-tauri-drag-region>
     <div class="title-bar-left">
-      <div class="title-bar-menus">
-        <div class="menu-item" data-menu="file">
-          <span class="menu-label">File</span>
-          <div class="menu-dropdown" id="menu-file">
-            <div class="menu-option" id="menu-open">
-              <span class="menu-option-label">Open...</span>
-              <span class="menu-option-shortcut">Ctrl+O</span>
-            </div>
-            <div class="menu-option" id="menu-save">
-              <span class="menu-option-label">Save</span>
-              <span class="menu-option-shortcut">Ctrl+S</span>
-            </div>
-            <div class="menu-option" id="menu-save-as">
-              <span class="menu-option-label">Save As...</span>
-              <span class="menu-option-shortcut">Ctrl+Shift+S</span>
-            </div>
-            <div class="menu-divider"></div>
-            <div class="menu-option" id="menu-doc-properties">
-              <span class="menu-option-label">Document Properties...</span>
-              <span class="menu-option-shortcut">Ctrl+D</span>
-            </div>
-            <div class="menu-divider"></div>
-            <div class="menu-option" id="menu-preferences">
-              <span class="menu-option-label">Preferences...</span>
-              <span class="menu-option-shortcut">Ctrl+,</span>
-            </div>
-            <div class="menu-divider"></div>
-            <div class="menu-option" id="menu-exit">
-              <span class="menu-option-label">Exit</span>
-              <span class="menu-option-shortcut">Alt+F4</span>
-            </div>
-          </div>
-        </div>
-      </div>
       <!-- Quick Access Toolbar -->
       <div class="quick-access-toolbar">
+        <img src="icon.png" class="app-icon" alt="OpenPDFStudio">
+        <div class="quick-access-separator"></div>
+        <button class="quick-access-btn" id="qa-open" title="Open (Ctrl+O)">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"/>
+          </svg>
+        </button>
         <button class="quick-access-btn" id="qa-save" title="Save (Ctrl+S)">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V7l-4-4z"/>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 3v4a1 1 0 01-1 1H8"/>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 14h10v7H7z"/>
+          </svg>
+        </button>
+        <button class="quick-access-btn" id="qa-save-as" title="Save As (Ctrl+Shift+S)">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V7l-4-4z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 3v4a1 1 0 01-1 1H8"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 14h10v7H7z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v5m0 0l2-2m-2 2l-2-2"/>
           </svg>
         </button>
         <button class="quick-access-btn" id="qa-print" title="Print (Ctrl+P)">
@@ -104,6 +90,7 @@
   <div class="ribbon-container">
     <!-- Ribbon Tabs -->
     <div class="ribbon-tabs">
+      <button class="ribbon-tab file-tab" id="file-tab">File</button>
       <button class="ribbon-tab active" data-tab="home">Home</button>
       <button class="ribbon-tab" data-tab="comment">Comment</button>
       <button class="ribbon-tab" data-tab="view">View</button>
@@ -629,6 +616,22 @@
           </div>
           <div class="ribbon-group-label">Panels</div>
         </div>
+
+        <!-- Appearance -->
+        <div class="ribbon-group">
+          <div class="ribbon-group-content">
+            <div class="ribbon-input-group" style="justify-content: center;">
+              <label class="ribbon-input-label" for="theme-select">Theme</label>
+              <select class="ribbon-input" id="theme-select" style="width: 110px;">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+                <option value="blue">Blue</option>
+                <option value="highContrast">High Contrast</option>
+              </select>
+            </div>
+          </div>
+          <div class="ribbon-group-label">Appearance</div>
+        </div>
       </div>
     </div>
 
@@ -828,26 +831,218 @@
           </svg>
           <span>Bookmarks</span>
         </button>
+        <button class="left-panel-tab" data-panel="annotations" title="Annotations">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span>Annotations</span>
+        </button>
+        <button class="left-panel-tab" data-panel="attachments" title="Attachments">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+          </svg>
+          <span>Attachments</span>
+        </button>
+        <button class="left-panel-tab" data-panel="signatures" title="Digital Signatures">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span>Signatures</span>
+        </button>
+        <button class="left-panel-tab" data-panel="layers" title="Layers">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+            <polyline points="2 17 12 22 22 17"/>
+            <polyline points="2 12 12 17 22 12"/>
+          </svg>
+          <span>Layers</span>
+        </button>
+        <button class="left-panel-tab" data-panel="form-fields" title="Form Fields">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="1"/>
+            <line x1="7" y1="8" x2="17" y2="8"/>
+            <line x1="7" y1="12" x2="17" y2="12"/>
+            <line x1="7" y1="16" x2="12" y2="16"/>
+          </svg>
+          <span>Form Fields</span>
+        </button>
+        <button class="left-panel-tab" data-panel="destinations" title="Destinations">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="10" r="3"/>
+            <path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"/>
+          </svg>
+          <span>Destinations</span>
+        </button>
+        <button class="left-panel-tab" data-panel="tags" title="Tags">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+            <line x1="7" y1="7" x2="7.01" y2="7"/>
+          </svg>
+          <span>Tags</span>
+        </button>
+        <button class="left-panel-tab" data-panel="links" title="Links">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+          <span>Links</span>
+        </button>
       </div>
 
-      <!-- Thumbnails Panel -->
-      <div class="left-panel-content active" id="thumbnails-panel">
-        <div class="left-panel-header">
-          <span>Page Thumbnails</span>
+      <div class="left-panel-body">
+        <!-- Thumbnails Panel -->
+        <div class="left-panel-content active" id="thumbnails-panel">
+          <div class="left-panel-header">
+            <span>Page Thumbnails</span>
+          </div>
+          <div class="thumbnails-container" id="thumbnails-container">
+            <!-- Thumbnails will be dynamically added here -->
+          </div>
         </div>
-        <div class="thumbnails-container" id="thumbnails-container">
-          <!-- Thumbnails will be dynamically added here -->
-        </div>
-      </div>
 
-      <!-- Bookmarks Panel -->
-      <div class="left-panel-content" id="bookmarks-panel">
-        <div class="left-panel-header">
-          <span>Bookmarks</span>
+        <!-- Bookmarks Panel -->
+        <div class="left-panel-content" id="bookmarks-panel">
+          <div class="left-panel-header">
+            <span>Bookmarks</span>
+          </div>
+          <div class="bookmarks-container" id="bookmarks-container">
+            <div class="bookmarks-empty">No bookmarks in this document</div>
+          </div>
         </div>
-        <div class="bookmarks-container" id="bookmarks-container">
-          <div class="bookmarks-empty">No bookmarks in this document</div>
+
+        <!-- Annotations Panel -->
+        <div class="left-panel-content" id="annotations-panel">
+          <div class="left-panel-header">
+            <span>Annotations</span>
+            <div class="annotations-filter">
+              <select id="annotations-list-filter">
+                <option value="all">All Pages</option>
+                <option value="current">Current Page</option>
+              </select>
+            </div>
+          </div>
+          <div class="annotations-list-content" id="annotations-list-content">
+            <!-- Annotation items dynamically added -->
+          </div>
+          <div class="annotations-list-count" id="annotations-list-count">0 annotations</div>
         </div>
+
+        <!-- Attachments Panel -->
+        <div class="left-panel-content" id="attachments-panel">
+          <div class="left-panel-header">
+            <span>Attachments</span>
+          </div>
+          <div class="attachments-toolbar" id="attachments-toolbar">
+            <button class="attachments-toolbar-btn" id="attachments-add-btn" title="Add attachment">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+            <button class="attachments-toolbar-btn" id="attachments-open-btn" title="Open attachment" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </button>
+            <button class="attachments-toolbar-btn" id="attachments-save-btn" title="Save attachment" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+            <button class="attachments-toolbar-btn" id="attachments-save-all-btn" title="Save all attachments" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/><line x1="3" y1="3" x2="8" y2="3"/></svg>
+            </button>
+            <button class="attachments-toolbar-btn" id="attachments-delete-btn" title="Delete attachment" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+          <div class="attachments-container" id="attachments-container">
+            <div class="attachments-empty">No attachments in this document</div>
+          </div>
+          <div class="attachments-count" id="attachments-count">0 attachments</div>
+        </div>
+
+        <!-- Signatures Panel -->
+        <div class="left-panel-content" id="signatures-panel">
+          <div class="left-panel-header">
+            <span>Digital Signatures</span>
+          </div>
+          <div class="signatures-container" id="signatures-container">
+            <div class="signatures-empty">No digital signatures in this document</div>
+          </div>
+          <div class="signatures-count" id="signatures-count">0 signatures</div>
+        </div>
+
+        <!-- Layers Panel -->
+        <div class="left-panel-content" id="layers-panel">
+          <div class="left-panel-header">
+            <span>Layers</span>
+          </div>
+          <div class="layers-container" id="layers-container">
+            <div class="layers-empty">No layers in this document</div>
+          </div>
+          <div class="layers-count" id="layers-count">0 layers</div>
+        </div>
+
+        <!-- Form Fields Panel -->
+        <div class="left-panel-content" id="form-fields-panel">
+          <div class="left-panel-header">
+            <span>Form Fields</span>
+          </div>
+          <div class="form-fields-container" id="form-fields-container">
+            <div class="form-fields-empty">No form fields in this document</div>
+          </div>
+          <div class="form-fields-count" id="form-fields-count">0 fields</div>
+        </div>
+
+        <!-- Destinations Panel -->
+        <div class="left-panel-content" id="destinations-panel">
+          <div class="left-panel-header">
+            <span>Destinations</span>
+          </div>
+          <div class="destinations-container" id="destinations-container">
+            <div class="destinations-empty">No named destinations in this document</div>
+          </div>
+          <div class="destinations-count" id="destinations-count">0 destinations</div>
+        </div>
+
+        <!-- Tags Panel -->
+        <div class="left-panel-content" id="tags-panel">
+          <div class="left-panel-header">
+            <span>Tags</span>
+          </div>
+          <div class="tags-container" id="tags-container">
+            <div class="tags-empty">No structure tags in this document</div>
+          </div>
+          <div class="tags-count" id="tags-count">0 tags</div>
+        </div>
+
+        <!-- Links Panel -->
+        <div class="left-panel-content" id="links-panel">
+          <div class="left-panel-header">
+            <span>Links</span>
+            <div class="links-filter">
+              <select id="links-filter">
+                <option value="all">All Pages</option>
+                <option value="current">Current Page</option>
+                <option value="external">External Only</option>
+                <option value="internal">Internal Only</option>
+              </select>
+            </div>
+          </div>
+          <div class="links-toolbar" id="links-toolbar">
+            <button class="links-toolbar-btn" id="links-goto-btn" title="Go to link source page" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+            <button class="links-toolbar-btn" id="links-open-btn" title="Open external URL" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </button>
+            <button class="links-toolbar-btn" id="links-copy-btn" title="Copy link URL" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="1"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <button class="links-toolbar-btn" id="links-export-btn" title="Export all links to CSV">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+          </div>
+          <div class="links-container" id="links-container">
+            <div class="links-empty">No links in this document</div>
+          </div>
+          <div class="links-count" id="links-count">0 links</div>
+        </div>
+
       </div>
 
       <button class="left-panel-toggle" id="left-panel-toggle" title="Toggle Panel">
@@ -919,62 +1114,47 @@
       </div>
     </div>
 
-    <!-- Annotations List Panel -->
-    <div class="annotations-list-panel" id="annotations-list-panel">
-      <h3>Annotations</h3>
-      <div class="annotations-list-header">
-        <div class="annotations-list-filter">
-          <label>Show:</label>
-          <select id="annotations-list-filter">
-            <option value="all">All Pages</option>
-            <option value="current">Current Page</option>
-          </select>
-        </div>
-      </div>
-      <div class="annotations-list-content" id="annotations-list-content">
-        <!-- Annotation items will be dynamically added here -->
-      </div>
-      <div class="annotations-list-count" id="annotations-list-count">
-        0 annotations
-      </div>
-    </div>
-
     <!-- Properties Panel -->
     <div class="properties-panel" id="properties-panel">
-      <div id="prop-panel-header" style="display: flex; align-items: center; justify-content: space-between; margin: -16px -16px 12px -16px; background: linear-gradient(to bottom, #3e3e42 0%, #2d2d30 100%); padding: 0 4px 0 12px;">
+      <div id="prop-panel-header" class="prop-panel-header">
         <h3 style="margin: 0; padding: 8px 0; background: none;">Properties</h3>
-        <button id="prop-panel-close" title="Close" style="background: none; border: none; cursor: default; font-size: 18px; color: #aaa; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; padding: 0;"
-          onmouseenter="this.style.background='#e81123';this.style.color='#fff'"
-          onmouseleave="this.style.background='none';this.style.color='#aaa'">&times;</button>
+        <button id="prop-panel-close" class="prop-panel-close-btn" title="Close">&times;</button>
       </div>
       <div id="prop-no-selection" style="display: none;">
         <div class="property-section">
-          <div class="property-section-header">Document</div>
-          <div class="property-group"><label>File</label><span id="doc-info-filename" style="font-size: 12px; color: #333; word-break: break-all;">-</span></div>
-          <div class="property-group"><label>Path</label><span id="doc-info-filepath" style="font-size: 11px; color: #666; word-break: break-all;">-</span></div>
-          <div class="property-group"><label>Pages</label><span id="doc-info-pages" style="font-size: 12px; color: #333;">-</span></div>
-          <div class="property-group"><label>Page Size</label><span id="doc-info-pagesize" style="font-size: 12px; color: #333;">-</span></div>
+          <div class="property-section-header">Document <span class="collapse-arrow">&#9660;</span></div>
+          <div class="property-section-content">
+          <div class="property-group"><label>File</label><span id="doc-info-filename" class="prop-info-value" style="word-break: break-all;">-</span></div>
+          <div class="property-group"><label>Path</label><span id="doc-info-filepath" class="prop-info-secondary" style="word-break: break-all;">-</span></div>
+          <div class="property-group"><label>Pages</label><span id="doc-info-pages" class="prop-info-value">-</span></div>
+          <div class="property-group"><label>Page Size</label><span id="doc-info-pagesize" class="prop-info-value">-</span></div>
+          </div>
         </div>
         <div class="property-section">
-          <div class="property-section-header">Metadata</div>
-          <div class="property-group"><label>Title</label><span id="doc-info-title" style="font-size: 12px; color: #333;">-</span></div>
-          <div class="property-group"><label>Author</label><span id="doc-info-author" style="font-size: 12px; color: #333;">-</span></div>
-          <div class="property-group"><label>Subject</label><span id="doc-info-subject" style="font-size: 12px; color: #333;">-</span></div>
-          <div class="property-group"><label>Creator</label><span id="doc-info-creator" style="font-size: 12px; color: #333;">-</span></div>
-          <div class="property-group"><label>Producer</label><span id="doc-info-producer" style="font-size: 12px; color: #333;">-</span></div>
-          <div class="property-group"><label>PDF Version</label><span id="doc-info-version" style="font-size: 12px; color: #333;">-</span></div>
+          <div class="property-section-header">Metadata <span class="collapse-arrow">&#9660;</span></div>
+          <div class="property-section-content">
+          <div class="property-group"><label>Title</label><span id="doc-info-title" class="prop-info-value">-</span></div>
+          <div class="property-group"><label>Author</label><span id="doc-info-author" class="prop-info-value">-</span></div>
+          <div class="property-group"><label>Subject</label><span id="doc-info-subject" class="prop-info-value">-</span></div>
+          <div class="property-group"><label>Creator</label><span id="doc-info-creator" class="prop-info-value">-</span></div>
+          <div class="property-group"><label>Producer</label><span id="doc-info-producer" class="prop-info-value">-</span></div>
+          <div class="property-group"><label>PDF Version</label><span id="doc-info-version" class="prop-info-value">-</span></div>
+          </div>
         </div>
         <div class="property-section">
-          <div class="property-section-header">Annotations</div>
-          <div class="property-group"><label>Total</label><span id="doc-info-annot-count" style="font-size: 12px; color: #333;">0</span></div>
-          <div class="property-group"><label>On Page</label><span id="doc-info-annot-page" style="font-size: 12px; color: #333;">0</span></div>
+          <div class="property-section-header">Annotations <span class="collapse-arrow">&#9660;</span></div>
+          <div class="property-section-content">
+          <div class="property-group"><label>Total</label><span id="doc-info-annot-count" class="prop-info-value">0</span></div>
+          <div class="property-group"><label>On Page</label><span id="doc-info-annot-page" class="prop-info-value">0</span></div>
+          </div>
         </div>
-        <div style="padding: 12px 4px; text-align: center; color: #999; font-size: 11px; font-style: italic;">Select an annotation to edit its properties</div>
+        <div class="prop-hint-text">Select an annotation to edit its properties</div>
       </div>
 
       <!-- General Section -->
       <div class="property-section" id="prop-general-section">
-        <div class="property-section-header">General</div>
+        <div class="property-section-header">General <span class="collapse-arrow">&#9660;</span></div>
+        <div class="property-section-content">
 
         <div class="property-group" id="prop-type-group">
           <label>Type</label>
@@ -1049,21 +1229,25 @@
             <option value="reviewed">Reviewed</option>
           </select>
         </div>
+        </div>
       </div>
 
       <!-- Replies Section -->
       <div class="property-section" id="prop-replies-section" style="display: none;">
-        <div class="property-section-header">Replies</div>
-        <div id="prop-replies-list" style="max-height: 150px; overflow-y: auto; margin-bottom: 8px;"></div>
-        <div style="display: flex; gap: 4px;">
-          <input type="text" id="prop-reply-input" placeholder="Add a reply..." style="flex: 1; padding: 4px 8px; border: 1px solid #ccc; font-size: 12px;">
-          <button id="prop-reply-add" style="padding: 4px 8px; border: 1px solid #0078d4; background: #0078d4; color: #fff; cursor: pointer; font-size: 12px;">Add</button>
+        <div class="property-section-header">Replies <span class="collapse-arrow">&#9660;</span></div>
+        <div class="property-section-content">
+        <div id="prop-replies-list" class="prop-replies-list"></div>
+        <div class="prop-reply-row">
+          <input type="text" id="prop-reply-input" class="prop-reply-input" placeholder="Add a reply...">
+          <button id="prop-reply-add" class="prop-reply-add-btn">Add</button>
+        </div>
         </div>
       </div>
 
       <!-- Appearance Section -->
       <div class="property-section" id="prop-appearance-section">
-        <div class="property-section-header">Appearance</div>
+        <div class="property-section-header">Appearance <span class="collapse-arrow">&#9660;</span></div>
+        <div class="property-section-content">
 
         <div class="property-group" id="prop-icon-group" style="display: none;">
           <label>Icon</label>
@@ -1182,11 +1366,13 @@
             <option value="dotted">Dotted</option>
           </select>
         </div>
+        </div>
       </div>
 
       <!-- Line Endings Section (for arrow) -->
       <div class="property-section" id="prop-line-endings-section" style="display: none;">
-        <div class="property-section-header">Line Endings</div>
+        <div class="property-section-header">Line Endings <span class="collapse-arrow">&#9660;</span></div>
+        <div class="property-section-content">
 
         <div class="property-group" id="prop-arrow-start-group">
           <label>Start</label>
@@ -1218,21 +1404,25 @@
           <label>Head Size</label>
           <input type="number" id="prop-arrow-head-size" min="4" max="40" value="12">
         </div>
+        </div>
       </div>
 
       <!-- Size & Dimensions Section (for arrow) -->
       <div class="property-section" id="prop-dimensions-section" style="display: none;">
-        <div class="property-section-header">Size & Dimensions</div>
+        <div class="property-section-header">Size & Dimensions <span class="collapse-arrow">&#9660;</span></div>
+        <div class="property-section-content">
 
         <div class="property-group" id="prop-arrow-length-group">
           <label>Length</label>
           <input type="text" id="prop-arrow-length" readonly>
         </div>
+        </div>
       </div>
 
       <!-- Text Formatting Section (for textbox/callout) -->
       <div class="property-section" id="prop-text-format-section" style="display: none;">
-        <div class="property-section-header">Character</div>
+        <div class="property-section-header">Character <span class="collapse-arrow">&#9660;</span></div>
+        <div class="property-section-content">
 
         <div class="property-group">
           <label>Text Color</label>
@@ -1312,11 +1502,13 @@
             </button>
           </div>
         </div>
+        </div>
       </div>
 
       <!-- Paragraph Section (for textbox/callout) -->
       <div class="property-section" id="prop-paragraph-section" style="display: none;">
-        <div class="property-section-header">Paragraph</div>
+        <div class="property-section-header">Paragraph <span class="collapse-arrow">&#9660;</span></div>
+        <div class="property-section-content">
 
         <div class="property-group">
           <label>Text Alignment</label>
@@ -1350,11 +1542,13 @@
             <option value="3">3x</option>
           </select>
         </div>
+        </div>
       </div>
 
       <!-- Content Section (for text/comments) -->
       <div class="property-section" id="prop-content-section" style="display: none;">
-        <div class="property-section-header">Content</div>
+        <div class="property-section-header">Content <span class="collapse-arrow">&#9660;</span></div>
+        <div class="property-section-content">
 
         <div class="property-group" id="prop-text-group">
           <label>Text</label>
@@ -1365,11 +1559,13 @@
           <label>Font Size</label>
           <input type="number" id="prop-font-size" min="8" max="72">
         </div>
+        </div>
       </div>
 
       <!-- Image Section -->
       <div class="property-section" id="prop-image-section" style="display: none;">
-        <div class="property-section-header">Image</div>
+        <div class="property-section-header">Image <span class="collapse-arrow">&#9660;</span></div>
+        <div class="property-section-content">
 
         <div class="property-group">
           <label>Width</label>
@@ -1388,6 +1584,7 @@
 
         <div class="property-group property-group-full">
           <button type="button" class="property-btn secondary" id="prop-image-reset">Reset to Original Size</button>
+        </div>
         </div>
       </div>
 
@@ -1412,6 +1609,11 @@
       </div>
     </div>
     <div class="status-bar-center" id="pdf-controls" style="display: none;">
+      <button class="status-nav-btn" id="first-page" title="First Page">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7M18 19l-7-7 7-7"/>
+        </svg>
+      </button>
       <button class="status-nav-btn" id="prev-page" title="Previous Page">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -1421,6 +1623,11 @@
       <button class="status-nav-btn" id="next-page" title="Next Page">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </button>
+      <button class="status-nav-btn" id="last-page" title="Last Page">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M6 5l7 7-7 7"/>
         </svg>
       </button>
       <div class="status-zoom-controls">
@@ -1547,7 +1754,9 @@
         <div class="pref-tabs">
           <button class="pref-tab active" data-pref-tab="general">General</button>
           <button class="pref-tab" data-pref-tab="annotations">Annotations</button>
+          <button class="pref-tab" data-pref-tab="drawing">Drawing</button>
           <button class="pref-tab" data-pref-tab="shapes">Shapes</button>
+          <button class="pref-tab" data-pref-tab="markup">Markup</button>
           <button class="pref-tab" data-pref-tab="behavior">Behavior</button>
           <button class="pref-tab" data-pref-tab="fileassoc">File Association</button>
         </div>
@@ -1749,6 +1958,282 @@
               <input type="number" id="pref-callout-font-size" min="8" max="72" value="14">
             </div>
           </div>
+
+          <div class="preferences-section">
+            <h3>Highlight Defaults</h3>
+            <div class="pref-row">
+              <label>Color</label>
+              <div class="pref-color-wrapper" id="pref-highlight-color-wrapper">
+                <button type="button" class="color-picker-button" id="pref-highlight-color-btn">
+                  <div class="color-preview" id="pref-highlight-color-preview" style="background: #ffff00;"></div>
+                  <span class="color-hex" id="pref-highlight-color-hex">#FFFF00</span>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                <div class="color-palette-dropdown" id="pref-highlight-color-dropdown">
+                  <div class="color-palette" id="pref-highlight-color-palette"></div>
+                  <button type="button" class="color-custom-btn" id="pref-highlight-color-custom-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 2a10 10 0 0 1 0 20"/>
+                    </svg>
+                    More Colors...
+                  </button>
+                </div>
+                <input type="color" id="pref-highlight-color" value="#ffff00">
+              </div>
+            </div>
+          </div>
+
+          <div class="preferences-section">
+            <h3>Comment/Note Defaults</h3>
+            <div class="pref-row">
+              <label>Color</label>
+              <div class="pref-color-wrapper" id="pref-comment-color-wrapper">
+                <button type="button" class="color-picker-button" id="pref-comment-color-btn">
+                  <div class="color-preview" id="pref-comment-color-preview" style="background: #ffff00;"></div>
+                  <span class="color-hex" id="pref-comment-color-hex">#FFFF00</span>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                <div class="color-palette-dropdown" id="pref-comment-color-dropdown">
+                  <div class="color-palette" id="pref-comment-color-palette"></div>
+                  <button type="button" class="color-custom-btn" id="pref-comment-color-custom-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 2a10 10 0 0 1 0 20"/>
+                    </svg>
+                    More Colors...
+                  </button>
+                </div>
+                <input type="color" id="pref-comment-color" value="#ffff00">
+              </div>
+            </div>
+            <div class="pref-row">
+              <label for="pref-comment-icon">Icon</label>
+              <select id="pref-comment-icon">
+                <option value="comment">Comment</option>
+                <option value="key">Key</option>
+                <option value="note">Note</option>
+                <option value="help">Help</option>
+                <option value="newParagraph">New Paragraph</option>
+                <option value="paragraph">Paragraph</option>
+                <option value="insert">Insert</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Drawing Tab (Freehand, Line, Arrow, Polyline) -->
+        <div class="pref-tab-content" id="pref-tab-drawing">
+          <div class="preferences-section">
+            <h3>Freehand Defaults</h3>
+            <div class="pref-row">
+              <label>Stroke Color</label>
+              <div class="pref-color-wrapper" id="pref-draw-stroke-color-wrapper">
+                <button type="button" class="color-picker-button" id="pref-draw-stroke-color-btn">
+                  <div class="color-preview" id="pref-draw-stroke-color-preview" style="background: #000000;"></div>
+                  <span class="color-hex" id="pref-draw-stroke-color-hex">#000000</span>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                <div class="color-palette-dropdown" id="pref-draw-stroke-color-dropdown">
+                  <div class="color-palette" id="pref-draw-stroke-color-palette"></div>
+                  <button type="button" class="color-custom-btn" id="pref-draw-stroke-color-custom-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 2a10 10 0 0 1 0 20"/>
+                    </svg>
+                    More Colors...
+                  </button>
+                </div>
+                <input type="color" id="pref-draw-stroke-color" value="#000000">
+              </div>
+            </div>
+            <div class="pref-row">
+              <label for="pref-draw-line-width">Line Width</label>
+              <input type="number" id="pref-draw-line-width" min="1" max="20" value="3">
+            </div>
+            <div class="pref-row">
+              <label for="pref-draw-opacity">Opacity (%)</label>
+              <input type="number" id="pref-draw-opacity" min="10" max="100" value="100">
+            </div>
+          </div>
+
+          <div class="preferences-section">
+            <h3>Line Defaults</h3>
+            <div class="pref-row">
+              <label>Stroke Color</label>
+              <div class="pref-color-wrapper" id="pref-line-stroke-color-wrapper">
+                <button type="button" class="color-picker-button" id="pref-line-stroke-color-btn">
+                  <div class="color-preview" id="pref-line-stroke-color-preview" style="background: #000000;"></div>
+                  <span class="color-hex" id="pref-line-stroke-color-hex">#000000</span>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                <div class="color-palette-dropdown" id="pref-line-stroke-color-dropdown">
+                  <div class="color-palette" id="pref-line-stroke-color-palette"></div>
+                  <button type="button" class="color-custom-btn" id="pref-line-stroke-color-custom-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 2a10 10 0 0 1 0 20"/>
+                    </svg>
+                    More Colors...
+                  </button>
+                </div>
+                <input type="color" id="pref-line-stroke-color" value="#000000">
+              </div>
+            </div>
+            <div class="pref-row">
+              <label for="pref-line-line-width">Line Width</label>
+              <input type="number" id="pref-line-line-width" min="1" max="20" value="2">
+            </div>
+            <div class="pref-row">
+              <label for="pref-line-border-style">Border Style</label>
+              <select id="pref-line-border-style">
+                <option value="solid">Solid</option>
+                <option value="dashed">Dashed</option>
+                <option value="dotted">Dotted</option>
+              </select>
+            </div>
+            <div class="pref-row">
+              <label for="pref-line-opacity">Opacity (%)</label>
+              <input type="number" id="pref-line-opacity" min="10" max="100" value="100">
+            </div>
+          </div>
+
+          <div class="preferences-section">
+            <h3>Arrow Defaults</h3>
+            <div class="pref-row">
+              <label>Stroke Color</label>
+              <div class="pref-color-wrapper" id="pref-arrow-stroke-color-wrapper">
+                <button type="button" class="color-picker-button" id="pref-arrow-stroke-color-btn">
+                  <div class="color-preview" id="pref-arrow-stroke-color-preview" style="background: #0000ff;"></div>
+                  <span class="color-hex" id="pref-arrow-stroke-color-hex">#0000FF</span>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                <div class="color-palette-dropdown" id="pref-arrow-stroke-color-dropdown">
+                  <div class="color-palette" id="pref-arrow-stroke-color-palette"></div>
+                  <button type="button" class="color-custom-btn" id="pref-arrow-stroke-color-custom-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 2a10 10 0 0 1 0 20"/>
+                    </svg>
+                    More Colors...
+                  </button>
+                </div>
+                <input type="color" id="pref-arrow-stroke-color" value="#0000ff">
+              </div>
+            </div>
+            <div class="pref-row">
+              <label>Fill Color</label>
+              <div class="pref-color-wrapper" id="pref-arrow-fill-color-wrapper">
+                <button type="button" class="color-picker-button" id="pref-arrow-fill-color-btn">
+                  <div class="color-preview" id="pref-arrow-fill-color-preview" style="background: #0000ff;"></div>
+                  <span class="color-hex" id="pref-arrow-fill-color-hex">#0000FF</span>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                <div class="color-palette-dropdown" id="pref-arrow-fill-color-dropdown">
+                  <div class="color-palette" id="pref-arrow-fill-color-palette"></div>
+                  <button type="button" class="color-custom-btn" id="pref-arrow-fill-color-custom-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 2a10 10 0 0 1 0 20"/>
+                    </svg>
+                    More Colors...
+                  </button>
+                </div>
+                <input type="color" id="pref-arrow-fill-color" value="#0000ff">
+              </div>
+            </div>
+            <div class="pref-row">
+              <label for="pref-arrow-line-width">Line Width</label>
+              <input type="number" id="pref-arrow-line-width" min="1" max="20" value="2">
+            </div>
+            <div class="pref-row">
+              <label for="pref-arrow-border-style">Border Style</label>
+              <select id="pref-arrow-border-style">
+                <option value="solid">Solid</option>
+                <option value="dashed">Dashed</option>
+                <option value="dotted">Dotted</option>
+              </select>
+            </div>
+            <div class="pref-row">
+              <label for="pref-arrow-start-head">Start Head</label>
+              <select id="pref-arrow-start-head">
+                <option value="none">None</option>
+                <option value="open">Open</option>
+                <option value="closed">Closed</option>
+                <option value="diamond">Diamond</option>
+                <option value="circle">Circle</option>
+                <option value="square">Square</option>
+                <option value="slash">Slash</option>
+              </select>
+            </div>
+            <div class="pref-row">
+              <label for="pref-arrow-end-head">End Head</label>
+              <select id="pref-arrow-end-head">
+                <option value="none">None</option>
+                <option value="open">Open</option>
+                <option value="closed">Closed</option>
+                <option value="diamond">Diamond</option>
+                <option value="circle">Circle</option>
+                <option value="square">Square</option>
+                <option value="slash">Slash</option>
+              </select>
+            </div>
+            <div class="pref-row">
+              <label for="pref-arrow-head-size">Head Size</label>
+              <input type="number" id="pref-arrow-head-size" min="4" max="40" value="12">
+            </div>
+            <div class="pref-row">
+              <label for="pref-arrow-opacity">Opacity (%)</label>
+              <input type="number" id="pref-arrow-opacity" min="10" max="100" value="100">
+            </div>
+          </div>
+
+          <div class="preferences-section">
+            <h3>Polyline Defaults</h3>
+            <div class="pref-row">
+              <label>Stroke Color</label>
+              <div class="pref-color-wrapper" id="pref-polyline-stroke-color-wrapper">
+                <button type="button" class="color-picker-button" id="pref-polyline-stroke-color-btn">
+                  <div class="color-preview" id="pref-polyline-stroke-color-preview" style="background: #000000;"></div>
+                  <span class="color-hex" id="pref-polyline-stroke-color-hex">#000000</span>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                <div class="color-palette-dropdown" id="pref-polyline-stroke-color-dropdown">
+                  <div class="color-palette" id="pref-polyline-stroke-color-palette"></div>
+                  <button type="button" class="color-custom-btn" id="pref-polyline-stroke-color-custom-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 2a10 10 0 0 1 0 20"/>
+                    </svg>
+                    More Colors...
+                  </button>
+                </div>
+                <input type="color" id="pref-polyline-stroke-color" value="#000000">
+              </div>
+            </div>
+            <div class="pref-row">
+              <label for="pref-polyline-line-width">Line Width</label>
+              <input type="number" id="pref-polyline-line-width" min="1" max="20" value="2">
+            </div>
+            <div class="pref-row">
+              <label for="pref-polyline-opacity">Opacity (%)</label>
+              <input type="number" id="pref-polyline-opacity" min="10" max="100" value="100">
+            </div>
+          </div>
         </div>
 
         <!-- Shapes Tab (Rectangle, Circle) -->
@@ -1896,6 +2381,141 @@
               <input type="number" id="pref-circle-opacity" min="10" max="100" value="100">
             </div>
           </div>
+
+          <div class="preferences-section">
+            <h3>Polygon Defaults</h3>
+            <div class="pref-row">
+              <label>Stroke Color</label>
+              <div class="pref-color-wrapper" id="pref-polygon-stroke-color-wrapper">
+                <button type="button" class="color-picker-button" id="pref-polygon-stroke-color-btn">
+                  <div class="color-preview" id="pref-polygon-stroke-color-preview" style="background: #000000;"></div>
+                  <span class="color-hex" id="pref-polygon-stroke-color-hex">#000000</span>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                <div class="color-palette-dropdown" id="pref-polygon-stroke-color-dropdown">
+                  <div class="color-palette" id="pref-polygon-stroke-color-palette"></div>
+                  <button type="button" class="color-custom-btn" id="pref-polygon-stroke-color-custom-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 2a10 10 0 0 1 0 20"/>
+                    </svg>
+                    More Colors...
+                  </button>
+                </div>
+                <input type="color" id="pref-polygon-stroke-color" value="#000000">
+              </div>
+            </div>
+            <div class="pref-row">
+              <label for="pref-polygon-line-width">Line Width</label>
+              <input type="number" id="pref-polygon-line-width" min="1" max="20" value="2">
+            </div>
+            <div class="pref-row">
+              <label for="pref-polygon-opacity">Opacity (%)</label>
+              <input type="number" id="pref-polygon-opacity" min="10" max="100" value="100">
+            </div>
+          </div>
+
+          <div class="preferences-section">
+            <h3>Cloud Defaults</h3>
+            <div class="pref-row">
+              <label>Stroke Color</label>
+              <div class="pref-color-wrapper" id="pref-cloud-stroke-color-wrapper">
+                <button type="button" class="color-picker-button" id="pref-cloud-stroke-color-btn">
+                  <div class="color-preview" id="pref-cloud-stroke-color-preview" style="background: #000000;"></div>
+                  <span class="color-hex" id="pref-cloud-stroke-color-hex">#000000</span>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                <div class="color-palette-dropdown" id="pref-cloud-stroke-color-dropdown">
+                  <div class="color-palette" id="pref-cloud-stroke-color-palette"></div>
+                  <button type="button" class="color-custom-btn" id="pref-cloud-stroke-color-custom-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 2a10 10 0 0 1 0 20"/>
+                    </svg>
+                    More Colors...
+                  </button>
+                </div>
+                <input type="color" id="pref-cloud-stroke-color" value="#000000">
+              </div>
+            </div>
+            <div class="pref-row">
+              <label for="pref-cloud-line-width">Line Width</label>
+              <input type="number" id="pref-cloud-line-width" min="1" max="20" value="2">
+            </div>
+            <div class="pref-row">
+              <label for="pref-cloud-opacity">Opacity (%)</label>
+              <input type="number" id="pref-cloud-opacity" min="10" max="100" value="100">
+            </div>
+          </div>
+        </div>
+
+        <!-- Markup Tab (Redaction, Measurement) -->
+        <div class="pref-tab-content" id="pref-tab-markup">
+          <div class="preferences-section">
+            <h3>Redaction Defaults</h3>
+            <div class="pref-row">
+              <label>Overlay Color</label>
+              <div class="pref-color-wrapper" id="pref-redaction-color-wrapper">
+                <button type="button" class="color-picker-button" id="pref-redaction-color-btn">
+                  <div class="color-preview" id="pref-redaction-color-preview" style="background: #000000;"></div>
+                  <span class="color-hex" id="pref-redaction-color-hex">#000000</span>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                <div class="color-palette-dropdown" id="pref-redaction-color-dropdown">
+                  <div class="color-palette" id="pref-redaction-color-palette"></div>
+                  <button type="button" class="color-custom-btn" id="pref-redaction-color-custom-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 2a10 10 0 0 1 0 20"/>
+                    </svg>
+                    More Colors...
+                  </button>
+                </div>
+                <input type="color" id="pref-redaction-color" value="#000000">
+              </div>
+            </div>
+          </div>
+
+          <div class="preferences-section">
+            <h3>Measurement Defaults</h3>
+            <div class="pref-row">
+              <label>Stroke Color</label>
+              <div class="pref-color-wrapper" id="pref-measure-stroke-color-wrapper">
+                <button type="button" class="color-picker-button" id="pref-measure-stroke-color-btn">
+                  <div class="color-preview" id="pref-measure-stroke-color-preview" style="background: #ff0000;"></div>
+                  <span class="color-hex" id="pref-measure-stroke-color-hex">#FF0000</span>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                <div class="color-palette-dropdown" id="pref-measure-stroke-color-dropdown">
+                  <div class="color-palette" id="pref-measure-stroke-color-palette"></div>
+                  <button type="button" class="color-custom-btn" id="pref-measure-stroke-color-custom-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 2a10 10 0 0 1 0 20"/>
+                    </svg>
+                    More Colors...
+                  </button>
+                </div>
+                <input type="color" id="pref-measure-stroke-color" value="#ff0000">
+              </div>
+            </div>
+            <div class="pref-row">
+              <label for="pref-measure-line-width">Line Width</label>
+              <input type="number" id="pref-measure-line-width" min="1" max="20" value="1">
+            </div>
+            <div class="pref-row">
+              <label for="pref-measure-opacity">Opacity (%)</label>
+              <input type="number" id="pref-measure-opacity" min="10" max="100" value="100">
+            </div>
+          </div>
         </div>
 
         <!-- Behavior Tab -->
@@ -1993,6 +2613,95 @@
         <div class="pref-footer-right">
           <button class="pref-btn pref-btn-secondary" id="pref-cancel-btn">Cancel</button>
           <button class="pref-btn pref-btn-primary" id="pref-save-btn">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Text Annotation Dialog -->
+  <div class="text-annot-overlay" id="text-annot-dialog">
+    <div class="text-annot-dialog">
+      <div class="text-annot-header">
+        <h2>Add Text Annotation</h2>
+        <button class="text-annot-close-btn" id="text-annot-close-btn">&times;</button>
+      </div>
+      <div class="text-annot-body">
+        <div class="text-annot-toolbar">
+          <div class="text-annot-toolbar-group">
+            <select id="text-annot-font-family" title="Font Family">
+              <option value="Arial">Arial</option>
+              <option value="Helvetica">Helvetica</option>
+              <option value="Times New Roman">Times New Roman</option>
+              <option value="Courier New">Courier New</option>
+              <option value="Georgia">Georgia</option>
+              <option value="Verdana">Verdana</option>
+              <option value="Tahoma">Tahoma</option>
+              <option value="Trebuchet MS">Trebuchet MS</option>
+              <option value="Calibri">Calibri</option>
+              <option value="Segoe UI">Segoe UI</option>
+            </select>
+            <select id="text-annot-font-size" title="Font Size">
+              <option value="8">8</option>
+              <option value="9">9</option>
+              <option value="10">10</option>
+              <option value="11">11</option>
+              <option value="12">12</option>
+              <option value="14">14</option>
+              <option value="16" selected>16</option>
+              <option value="18">18</option>
+              <option value="20">20</option>
+              <option value="24">24</option>
+              <option value="28">28</option>
+              <option value="32">32</option>
+              <option value="36">36</option>
+              <option value="48">48</option>
+              <option value="64">64</option>
+              <option value="72">72</option>
+            </select>
+          </div>
+          <div class="text-annot-toolbar-separator"></div>
+          <div class="text-annot-toolbar-group">
+            <button type="button" class="text-annot-toolbar-btn" id="text-annot-bold" title="Bold (Ctrl+B)">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"/></svg>
+            </button>
+            <button type="button" class="text-annot-toolbar-btn" id="text-annot-italic" title="Italic (Ctrl+I)">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z"/></svg>
+            </button>
+            <button type="button" class="text-annot-toolbar-btn" id="text-annot-underline" title="Underline (Ctrl+U)">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 17c3.31 0 6-2.69 6-6V3h-2.5v8c0 1.93-1.57 3.5-3.5 3.5S8.5 12.93 8.5 11V3H6v8c0 3.31 2.69 6 6 6zm-7 2v2h14v-2H5z"/></svg>
+            </button>
+          </div>
+          <div class="text-annot-toolbar-separator"></div>
+          <div class="text-annot-toolbar-group">
+            <button type="button" class="text-annot-toolbar-btn" id="text-annot-align-left" title="Align Left">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M15 15H3v2h12v-2zm0-8H3v2h12V7zM3 13h18v-2H3v2zm0 8h18v-2H3v2zM3 3v2h18V3H3z"/></svg>
+            </button>
+            <button type="button" class="text-annot-toolbar-btn" id="text-annot-align-center" title="Align Center">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 15v2h10v-2H7zm-4 6h18v-2H3v2zm0-8h18v-2H3v2zm4-6v2h10V7H7zM3 3v2h18V3H3z"/></svg>
+            </button>
+            <button type="button" class="text-annot-toolbar-btn" id="text-annot-align-right" title="Align Right">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 21h18v-2H3v2zm6-4h12v-2H9v2zm-6-4h18v-2H3v2zm6-4h12V7H9v2zM3 3v2h18V3H3z"/></svg>
+            </button>
+          </div>
+          <div class="text-annot-toolbar-separator"></div>
+          <div class="text-annot-toolbar-group">
+            <div class="text-annot-color-picker">
+              <label title="Text Color">
+                <div class="text-annot-color-swatch" id="text-annot-color-preview" style="background: #000000;"></div>
+                <input type="color" id="text-annot-color" value="#000000">
+              </label>
+            </div>
+          </div>
+        </div>
+        <textarea id="text-annot-input" placeholder="Type your text here..." spellcheck="true"></textarea>
+        <div class="text-annot-preview-label">Preview:</div>
+        <div class="text-annot-preview" id="text-annot-preview"></div>
+      </div>
+      <div class="text-annot-footer">
+        <div class="text-annot-char-count"><span id="text-annot-char-count">0</span> characters</div>
+        <div class="text-annot-footer-right">
+          <button class="pref-btn pref-btn-secondary" id="text-annot-cancel-btn">Cancel</button>
+          <button class="pref-btn pref-btn-primary" id="text-annot-ok-btn">OK</button>
         </div>
       </div>
     </div>
@@ -2433,6 +3142,100 @@
     <div class="loading-content">
       <div class="loading-spinner"></div>
       <div class="loading-text">Loading...</div>
+    </div>
+  </div>
+
+  <!-- Backstage Overlay -->
+  <div class="backstage-overlay" id="backstage-overlay">
+    <div class="backstage-sidebar">
+      <button class="backstage-back" id="backstage-back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        <span>File</span>
+      </button>
+      <div class="backstage-items">
+        <button class="backstage-item" id="bs-open">
+          <span class="backstage-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
+            </svg>
+          </span>
+          <span class="backstage-item-label">Open</span>
+          <span class="backstage-item-shortcut">Ctrl+O</span>
+        </button>
+        <button class="backstage-item" id="bs-save">
+          <span class="backstage-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V7l-4-4z"/>
+              <path d="M17 3v4a1 1 0 01-1 1H8"/>
+              <path d="M7 14h10v7H7z"/>
+            </svg>
+          </span>
+          <span class="backstage-item-label">Save</span>
+          <span class="backstage-item-shortcut">Ctrl+S</span>
+        </button>
+        <button class="backstage-item" id="bs-save-as">
+          <span class="backstage-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V7l-4-4z"/>
+              <path d="M17 3v4a1 1 0 01-1 1H8"/>
+              <path d="M12 12v6m-3-3h6"/>
+            </svg>
+          </span>
+          <span class="backstage-item-label">Save As...</span>
+          <span class="backstage-item-shortcut">Ctrl+Shift+S</span>
+        </button>
+        <div class="backstage-divider"></div>
+        <button class="backstage-item" id="bs-doc-properties">
+          <span class="backstage-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <path d="M14 2v6h6"/>
+              <path d="M16 13H8m8 4H8m2-8H8"/>
+            </svg>
+          </span>
+          <span class="backstage-item-label">Document Properties</span>
+          <span class="backstage-item-shortcut">Ctrl+D</span>
+        </button>
+        <div class="backstage-divider"></div>
+        <button class="backstage-item" id="bs-preferences">
+          <span class="backstage-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+            </svg>
+          </span>
+          <span class="backstage-item-label">Preferences</span>
+          <span class="backstage-item-shortcut">Ctrl+,</span>
+        </button>
+        <div class="backstage-divider"></div>
+        <button class="backstage-item" id="bs-about">
+          <span class="backstage-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+          </span>
+          <span class="backstage-item-label">About</span>
+          <span class="backstage-item-shortcut"></span>
+        </button>
+        <div class="backstage-divider"></div>
+        <button class="backstage-item" id="bs-exit">
+          <span class="backstage-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </span>
+          <span class="backstage-item-label">Exit</span>
+          <span class="backstage-item-shortcut">Alt+F4</span>
+        </button>
+      </div>
+    </div>
+    <div class="backstage-content" id="backstage-content">
     </div>
   </div>
 

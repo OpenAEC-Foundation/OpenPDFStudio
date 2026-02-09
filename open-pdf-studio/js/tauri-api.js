@@ -74,15 +74,19 @@ export async function openFileDialog() {
   return await invoke('open_file_dialog');
 }
 
-export async function saveFileDialog(defaultPath) {
+export async function saveFileDialog(defaultPath, filters) {
   if (!isTauri()) return null;
+
+  if (!filters) {
+    filters = [{ name: 'PDF Files', extensions: ['pdf'] }];
+  }
 
   // Try using the dialog plugin
   if (window.__TAURI__.dialog) {
     try {
       const result = await window.__TAURI__.dialog.save({
         defaultPath: defaultPath,
-        filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
+        filters: filters
       });
       return result;
     } catch (e) {
@@ -163,6 +167,15 @@ export async function invoke(cmd, args = {}) {
     return await core.invoke(cmd, args);
   }
   return null;
+}
+
+// Check if running in dev/debug mode
+export async function isDevMode() {
+  try {
+    return await invoke('is_dev_mode') === true;
+  } catch {
+    return false;
+  }
 }
 
 // Get file opened via command line

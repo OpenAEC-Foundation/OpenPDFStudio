@@ -3,35 +3,38 @@ import { annotationsListPanel, annotationsListContent, annotationsListFilter, an
 import { getTypeDisplayName, formatDate } from '../utils/helpers.js';
 import { showProperties } from './properties-panel.js';
 import { goToPage } from '../pdf/renderer.js';
+import { switchLeftPanelTab } from './left-panel.js';
 
 // Toggle annotations list panel visibility
 export function toggleAnnotationsListPanel() {
-  if (annotationsListPanel) {
-    annotationsListPanel.classList.toggle('visible');
-    if (annotationsListPanel.classList.contains('visible')) {
-      updateAnnotationsList();
-    }
+  const leftPanel = document.getElementById('left-panel');
+  const isAnnotationsActive = annotationsListPanel && annotationsListPanel.classList.contains('active');
+
+  if (isAnnotationsActive && leftPanel && !leftPanel.classList.contains('collapsed')) {
+    // Already showing annotations and panel is expanded - switch to thumbnails
+    switchLeftPanelTab('thumbnails');
+  } else {
+    // Switch to annotations tab (also expands if collapsed)
+    switchLeftPanelTab('annotations');
   }
 }
 
 // Show annotations list panel
 export function showAnnotationsListPanel() {
-  if (annotationsListPanel) {
-    annotationsListPanel.classList.add('visible');
-    updateAnnotationsList();
-  }
+  switchLeftPanelTab('annotations');
 }
 
 // Hide annotations list panel
 export function hideAnnotationsListPanel() {
-  if (annotationsListPanel) {
-    annotationsListPanel.classList.remove('visible');
-  }
+  switchLeftPanelTab('thumbnails');
 }
 
 // Update annotations list
 export function updateAnnotationsList() {
-  if (!annotationsListContent || !annotationsListPanel.classList.contains('visible')) return;
+  if (!annotationsListContent) return;
+
+  // Only update if annotations tab is active
+  if (annotationsListPanel && !annotationsListPanel.classList.contains('active')) return;
 
   // Get filter value
   const filterValue = annotationsListFilter?.value || 'all';
@@ -63,7 +66,6 @@ export function updateAnnotationsList() {
     const emptyMsg = document.createElement('div');
     emptyMsg.className = 'annotations-list-empty';
     emptyMsg.textContent = 'No annotations found';
-    emptyMsg.style.cssText = 'padding: 20px; text-align: center; color: #888; font-style: italic;';
     annotationsListContent.appendChild(emptyMsg);
     return;
   }
@@ -82,15 +84,6 @@ export function updateAnnotationsList() {
     const pageHeader = document.createElement('div');
     pageHeader.className = 'annotations-list-page-header';
     pageHeader.textContent = `Page ${pageNum}`;
-    pageHeader.style.cssText = `
-      padding: 8px 12px;
-      background: #f0f0f0;
-      font-weight: bold;
-      font-size: 12px;
-      color: #666;
-      border-bottom: 1px solid #ddd;
-      cursor: pointer;
-    `;
     pageHeader.addEventListener('click', async () => {
       await goToPage(parseInt(pageNum));
     });
@@ -107,48 +100,39 @@ export function updateAnnotationsList() {
 function createAnnotationListItem(annotation) {
   const item = document.createElement('div');
   item.className = 'annotation-list-item';
-  item.style.cssText = `
-    padding: 8px 12px;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  `;
+
+  // Add selected class
+  if (isSelected(annotation)) {
+    item.classList.add('selected');
+  }
 
   // Color indicator
   const colorDot = document.createElement('span');
-  colorDot.style.cssText = `
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background-color: ${annotation.color || annotation.strokeColor || '#000'};
-    flex-shrink: 0;
-    border: 1px solid rgba(0,0,0,0.2);
-  `;
+  colorDot.className = 'annotation-list-color';
+  colorDot.style.backgroundColor = annotation.color || annotation.strokeColor || '#000';
   item.appendChild(colorDot);
 
   // Content container
   const content = document.createElement('div');
-  content.style.cssText = 'flex: 1; min-width: 0;';
+  content.className = 'annotation-list-info';
 
-  // Type and preview
+  // Type name
   const typeSpan = document.createElement('div');
-  typeSpan.style.cssText = 'font-weight: 500; font-size: 13px; color: #333;';
+  typeSpan.className = 'annotation-list-type';
   typeSpan.textContent = getTypeDisplayName(annotation.type);
   content.appendChild(typeSpan);
 
   // Text preview if available
   if (annotation.text) {
     const preview = document.createElement('div');
-    preview.style.cssText = 'font-size: 11px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+    preview.className = 'annotation-list-preview';
     preview.textContent = annotation.text.substring(0, 50) + (annotation.text.length > 50 ? '...' : '');
     content.appendChild(preview);
   }
 
   // Author and date
   const meta = document.createElement('div');
-  meta.style.cssText = 'font-size: 10px; color: #aaa;';
+  meta.className = 'annotation-list-meta';
   meta.textContent = `${annotation.author || 'User'} - ${formatDate(annotation.modifiedAt)}`;
   content.appendChild(meta);
 
@@ -164,11 +148,11 @@ function createAnnotationListItem(annotation) {
       'reviewed': '#8b5cf6'
     };
     const statusDot = document.createElement('span');
-    statusDot.style.cssText = `
-      width: 8px; height: 8px; border-radius: 50%;
-      background-color: ${statusColors[annotation.status] || '#888'};
-      flex-shrink: 0;
-    `;
+    statusDot.style.width = '8px';
+    statusDot.style.height = '8px';
+    statusDot.style.borderRadius = '50%';
+    statusDot.style.backgroundColor = statusColors[annotation.status] || '#888';
+    statusDot.style.flexShrink = '0';
     statusDot.title = annotation.status.charAt(0).toUpperCase() + annotation.status.slice(1);
     item.appendChild(statusDot);
   }
@@ -176,23 +160,12 @@ function createAnnotationListItem(annotation) {
   // Reply count
   if (annotation.replies && annotation.replies.length > 0) {
     const replyBadge = document.createElement('span');
-    replyBadge.style.cssText = 'font-size: 10px; color: #0078d4; flex-shrink: 0;';
+    replyBadge.style.fontSize = '10px';
+    replyBadge.style.color = '#0078d4';
+    replyBadge.style.flexShrink = '0';
     replyBadge.textContent = `${annotation.replies.length}`;
     replyBadge.title = `${annotation.replies.length} replies`;
     item.appendChild(replyBadge);
-  }
-
-  // Lock indicator
-  if (annotation.locked) {
-    const lockIcon = document.createElement('span');
-    lockIcon.textContent = '🔒';
-    lockIcon.style.cssText = 'font-size: 12px;';
-    item.appendChild(lockIcon);
-  }
-
-  // Selection state
-  if (isSelected(annotation)) {
-    item.style.backgroundColor = '#e3f2fd';
   }
 
   // Click to select
@@ -206,29 +179,11 @@ function createAnnotationListItem(annotation) {
     updateAnnotationsList(); // Refresh to show selection
   });
 
-  // Hover effect
-  item.addEventListener('mouseenter', () => {
-    if (!isSelected(annotation)) {
-      item.style.backgroundColor = '#f5f5f5';
-    }
-  });
-  item.addEventListener('mouseleave', () => {
-    if (!isSelected(annotation)) {
-      item.style.backgroundColor = 'transparent';
-    }
-  });
-
   return item;
 }
 
 // Initialize annotations list panel
 export function initAnnotationsList() {
-  // Close button
-  const closeBtn = annotationsListPanel?.querySelector('.panel-close-btn');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', hideAnnotationsListPanel);
-  }
-
   // Filter change
   if (annotationsListFilter) {
     annotationsListFilter.addEventListener('change', updateAnnotationsList);

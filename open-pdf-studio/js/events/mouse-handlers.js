@@ -142,6 +142,7 @@ export function handleMouseDown(e) {
 
   // Handle polyline tool specially (click to add points, double-click to finish)
   if (state.currentTool === 'polyline') {
+    const polyPrefs = state.preferences;
     if (e.detail === 2) {
       // Double-click to finish polyline
       if (state.polylinePoints.length >= 2) {
@@ -149,9 +150,10 @@ export function handleMouseDown(e) {
           type: 'polyline',
           page: state.currentPage,
           points: [...state.polylinePoints],
-          color: colorPicker.value,
-          strokeColor: colorPicker.value,
-          lineWidth: parseInt(lineWidth.value)
+          color: polyPrefs.polylineStrokeColor,
+          strokeColor: polyPrefs.polylineStrokeColor,
+          lineWidth: polyPrefs.polylineLineWidth,
+          opacity: (polyPrefs.polylineOpacity || 100) / 100
         });
         state.annotations.push(ann);
         recordAdd(ann);
@@ -172,8 +174,8 @@ export function handleMouseDown(e) {
       const ctx = annotationCtx || annotationCanvas.getContext('2d');
       ctx.save();
       ctx.scale(state.scale, state.scale);
-      ctx.strokeStyle = colorPicker.value;
-      ctx.lineWidth = parseInt(lineWidth.value);
+      ctx.strokeStyle = polyPrefs.polylineStrokeColor;
+      ctx.lineWidth = polyPrefs.polylineLineWidth;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.beginPath();
@@ -185,7 +187,7 @@ export function handleMouseDown(e) {
       state.polylinePoints.forEach(point => {
         ctx.beginPath();
         ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI);
-        ctx.fillStyle = colorPicker.value;
+        ctx.fillStyle = polyPrefs.polylineStrokeColor;
         ctx.fill();
       });
       ctx.restore();
@@ -356,11 +358,12 @@ export function handleMouseMove(e) {
 
   // Handle polyline preview
   if (state.currentTool === 'polyline' && state.isDrawingPolyline && state.polylinePoints.length > 0) {
+    const polyPrefs = state.preferences;
     redrawAnnotations();
     annotationCtx.save();
     annotationCtx.scale(state.scale, state.scale);
-    annotationCtx.strokeStyle = colorPicker.value;
-    annotationCtx.lineWidth = parseInt(lineWidth.value);
+    annotationCtx.strokeStyle = polyPrefs.polylineStrokeColor;
+    annotationCtx.lineWidth = polyPrefs.polylineLineWidth;
     annotationCtx.lineCap = 'round';
     annotationCtx.lineJoin = 'round';
     annotationCtx.beginPath();
@@ -379,7 +382,7 @@ export function handleMouseMove(e) {
     state.polylinePoints.forEach(point => {
       annotationCtx.beginPath();
       annotationCtx.arc(point.x, point.y, 4, 0, 2 * Math.PI);
-      annotationCtx.fillStyle = colorPicker.value;
+      annotationCtx.fillStyle = polyPrefs.polylineStrokeColor;
       annotationCtx.fill();
     });
     annotationCtx.restore();
@@ -1021,7 +1024,7 @@ export function handleMouseUp(e) {
         type: 'redaction',
         page: state.currentPage,
         x: rx, y: ry, width: rw, height: rh,
-        overlayColor: '#000000'
+        overlayColor: prefs.redactionOverlayColor
       }));
     }
   } else if (state.currentTool === 'measureDistance') {
@@ -1033,9 +1036,10 @@ export function handleMouseUp(e) {
       startY: state.startY,
       endX: endX,
       endY: endY,
-      color: '#ff0000',
-      strokeColor: '#ff0000',
-      lineWidth: 1,
+      color: prefs.measureStrokeColor,
+      strokeColor: prefs.measureStrokeColor,
+      lineWidth: prefs.measureLineWidth,
+      opacity: (prefs.measureOpacity || 100) / 100,
       measureText: formatMeasurement(dist),
       measureValue: dist.value,
       measureUnit: dist.unit

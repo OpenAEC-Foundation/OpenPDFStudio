@@ -14,7 +14,8 @@ const ASSETS = [
   'styles.css',
   'js',
   'pdfjs',
-  'icons'
+  'icons',
+  'icon.png'
 ];
 
 // Node modules to include (for ES module imports)

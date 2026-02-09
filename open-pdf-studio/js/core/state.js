@@ -98,8 +98,8 @@ export const state = {
   activeContinuousCanvas: null,
   activeContinuousPage: null,
 
-  // Menu state
-  activeMenu: null,
+  // Backstage state
+  backstageOpen: false,
 
   // Text editing state
   isEditingText: false,

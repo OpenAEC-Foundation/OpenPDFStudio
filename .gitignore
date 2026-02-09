@@ -32,5 +32,6 @@ nul
 !open-pdf-studio/src-tauri/icons/**
 
 # Documentation
+CLAUDE.md
 open-pdf-studio/CLAUDE.md
 open-pdf-studio/ROADMAP.md

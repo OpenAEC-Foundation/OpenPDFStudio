@@ -1,5 +1,13 @@
 import { state, getActiveDocument, getPageRotation } from '../core/state.js';
 import { goToPage } from '../pdf/renderer.js';
+import { updateAnnotationsList } from './annotations-list.js';
+import { updateAttachmentsList } from './attachments.js';
+import { updateSignaturesList } from './signatures.js';
+import { updateLayersList } from './layers.js';
+import { updateFormFieldsList } from './form-fields.js';
+import { updateDestinationsList } from './destinations.js';
+import { updateTagsList } from './tags.js';
+import { updateLinksList } from './links.js';
 
 // DOM elements
 const leftPanel = document.getElementById('left-panel');
@@ -120,7 +128,7 @@ function updateVisiblePriorities() {
 }
 
 // Switch between tabs
-function switchLeftPanelTab(panelId) {
+export function switchLeftPanelTab(panelId) {
   // Update tab active state
   leftPanelTabs.forEach(tab => {
     tab.classList.toggle('active', tab.dataset.panel === panelId);
@@ -139,6 +147,40 @@ function switchLeftPanelTab(panelId) {
   // If collapsed, expand when clicking a tab
   if (leftPanel && leftPanel.classList.contains('collapsed')) {
     leftPanel.classList.remove('collapsed');
+  }
+
+  // Refresh content when switching to data tabs
+  refreshTabContent(panelId);
+}
+
+// Refresh whichever tab is currently active (call after loading a new document)
+export function refreshActiveTab() {
+  const activeTab = document.querySelector('.left-panel-tab.active');
+  if (!activeTab) return;
+  const panelId = activeTab.dataset.panel;
+  // Thumbnails are refreshed separately via generateThumbnails()
+  if (panelId && panelId !== 'thumbnails' && panelId !== 'bookmarks') {
+    refreshTabContent(panelId);
+  }
+}
+
+function refreshTabContent(panelId) {
+  if (panelId === 'annotations') {
+    updateAnnotationsList();
+  } else if (panelId === 'attachments') {
+    updateAttachmentsList();
+  } else if (panelId === 'signatures') {
+    updateSignaturesList();
+  } else if (panelId === 'layers') {
+    updateLayersList();
+  } else if (panelId === 'form-fields') {
+    updateFormFieldsList();
+  } else if (panelId === 'destinations') {
+    updateDestinationsList();
+  } else if (panelId === 'tags') {
+    updateTagsList();
+  } else if (panelId === 'links') {
+    updateLinksList();
   }
 }
 

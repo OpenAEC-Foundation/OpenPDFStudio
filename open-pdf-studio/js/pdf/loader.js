@@ -6,7 +6,7 @@ import { renderPage, setViewMode } from './renderer.js';
 import { createAnnotation } from '../annotations/factory.js';
 import { generateImageId } from '../utils/helpers.js';
 import { colorArrayToHex } from '../utils/colors.js';
-import { generateThumbnails } from '../ui/left-panel.js';
+import { generateThumbnails, refreshActiveTab } from '../ui/left-panel.js';
 import { createTab, updateWindowTitle } from '../ui/tabs.js';
 import * as pdfjsLib from '../../pdfjs/build/pdf.mjs';
 import { isTauri, readBinaryFile, openFileDialog } from '../tauri-api.js';
@@ -80,6 +80,9 @@ export async function loadPDF(filePath) {
 
     // Generate thumbnails for left panel
     generateThumbnails();
+
+    // Refresh active left panel tab (e.g. attachments, layers, etc.)
+    refreshActiveTab();
 
     // Update status bar
     updateAllStatus();
