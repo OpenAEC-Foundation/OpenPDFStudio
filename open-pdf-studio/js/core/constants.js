@@ -143,6 +143,7 @@ export const DEFAULT_PREFERENCES = {
 
   // Startup
   restoreLastSession: false,
+  dontAskDefaultPdf: false,
 
   // Display
   showHandles: true,

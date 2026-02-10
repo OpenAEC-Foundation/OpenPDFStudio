@@ -311,12 +311,15 @@ function drawAnnotation(ctx, annotation) {
       const offW = maxAX - minAX;
       const offH = maxAY - minAY;
 
+      // Create offscreen canvas at scaled resolution to avoid pixelation when zoomed
+      const arrowScale = state.scale || 1;
       const offCanvas = document.createElement('canvas');
-      offCanvas.width = offW;
-      offCanvas.height = offH;
+      offCanvas.width = offW * arrowScale;
+      offCanvas.height = offH * arrowScale;
       const offCtx = offCanvas.getContext('2d');
 
-      // Translate so coordinates match
+      // Scale and translate so coordinates match document space
+      offCtx.scale(arrowScale, arrowScale);
       offCtx.translate(-minAX, -minAY);
       offCtx.strokeStyle = strokeColor;
       offCtx.fillStyle = arrowFillColor;
@@ -344,7 +347,8 @@ function drawAnnotation(ctx, annotation) {
       }
 
       // Composite the offscreen arrow onto the main canvas with opacity
-      ctx.drawImage(offCanvas, minAX, minAY);
+      // drawImage with dest size to map back to document coordinates
+      ctx.drawImage(offCanvas, minAX, minAY, offW, offH);
       break;
     }
 
@@ -944,10 +948,11 @@ function drawAnnotation(ctx, annotation) {
 
 // Draw selection highlight and handles
 function drawSelectionHandles(ctx, annotation) {
-  // Selection outline style - thin, subtle dashed line
+  // Selection outline style - thin, subtle dashed line (scale-independent)
+  const sc = state.scale || 1;
   ctx.strokeStyle = '#0066cc';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([3, 3]);
+  ctx.lineWidth = 1 / sc;
+  ctx.setLineDash([3 / sc, 3 / sc]);
 
   switch (annotation.type) {
     case 'draw':
@@ -1008,9 +1013,10 @@ function drawSelectionHandles(ctx, annotation) {
       // Draw line from top center to rotation handle (green color)
       ctx.strokeStyle = '#22c55e';
       ctx.setLineDash([]);
+      ctx.lineWidth = 1 / sc;
       ctx.beginPath();
       ctx.moveTo(annotation.x + annotation.width/2, annotation.y - 2);
-      ctx.lineTo(annotation.x + annotation.width/2, annotation.y - 25);
+      ctx.lineTo(annotation.x + annotation.width/2, annotation.y - 25 / sc);
       ctx.stroke();
       ctx.restore();
       break;
@@ -1021,9 +1027,10 @@ function drawSelectionHandles(ctx, annotation) {
       // Draw line from top center to rotation handle (green color)
       ctx.strokeStyle = '#22c55e';
       ctx.setLineDash([]);
+      ctx.lineWidth = 1 / sc;
       ctx.beginPath();
       ctx.moveTo(annotation.x + selCW/2, annotation.y - 2);
-      ctx.lineTo(annotation.x + selCW/2, annotation.y - 25);
+      ctx.lineTo(annotation.x + selCW/2, annotation.y - 25 / sc);
       ctx.stroke();
       break;
     case 'text':
@@ -1050,9 +1057,10 @@ function drawSelectionHandles(ctx, annotation) {
       // Draw line from top center to rotation handle (green color)
       ctx.strokeStyle = '#22c55e';
       ctx.setLineDash([]);
+      ctx.lineWidth = 1 / sc;
       ctx.beginPath();
       ctx.moveTo(annotation.x + selTbWidth/2, annotation.y - 2);
-      ctx.lineTo(annotation.x + selTbWidth/2, annotation.y - 25);
+      ctx.lineTo(annotation.x + selTbWidth/2, annotation.y - 25 / sc);
       ctx.stroke();
       ctx.restore();
       break;
@@ -1086,9 +1094,10 @@ function drawSelectionHandles(ctx, annotation) {
       // Draw line from top center to rotation handle (green color)
       ctx.strokeStyle = '#22c55e';
       ctx.setLineDash([]);
+      ctx.lineWidth = 1 / sc;
       ctx.beginPath();
       ctx.moveTo(annotation.x + annotation.width/2, annotation.y - 2);
-      ctx.lineTo(annotation.x + annotation.width/2, annotation.y - 25);
+      ctx.lineTo(annotation.x + annotation.width/2, annotation.y - 25 / sc);
       ctx.stroke();
       break;
     case 'textHighlight':
@@ -1101,9 +1110,11 @@ function drawSelectionHandles(ctx, annotation) {
 
   ctx.setLineDash([]);
 
-  // Draw resize/move handles
-  const handles = getAnnotationHandles(annotation);
-  const hs = HANDLE_SIZE;
+  // Draw resize/move handles (scale-independent size)
+  const scale = state.scale || 1;
+  const handles = getAnnotationHandles(annotation, scale);
+  const hs = HANDLE_SIZE / scale;
+  const lw = 1 / scale;
 
   handles.forEach(handle => {
     const cx = handle.x + hs / 2;
@@ -1114,19 +1125,20 @@ function drawSelectionHandles(ctx, annotation) {
       // Outer circle
       ctx.fillStyle = '#22c55e';
       ctx.beginPath();
-      ctx.arc(cx, cy, hs / 2 + 1, 0, 2 * Math.PI);
+      ctx.arc(cx, cy, hs / 2 + lw, 0, 2 * Math.PI);
       ctx.fill();
       // Inner rotation arrow icon
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = lw;
       ctx.beginPath();
-      ctx.arc(cx, cy, 3, -Math.PI * 0.7, Math.PI * 0.5);
+      ctx.arc(cx, cy, 3 / scale, -Math.PI * 0.7, Math.PI * 0.5);
       ctx.stroke();
       // Small arrow head
+      const as = 2 / scale;
       ctx.beginPath();
-      ctx.moveTo(cx - 2, cy + 2);
-      ctx.lineTo(cx - 2, cy + 4);
-      ctx.lineTo(cx - 4, cy + 3);
+      ctx.moveTo(cx - as, cy + as);
+      ctx.lineTo(cx - as, cy + as * 2);
+      ctx.lineTo(cx - as * 2, cy + as * 1.5);
       ctx.closePath();
       ctx.fillStyle = '#ffffff';
       ctx.fill();
@@ -1134,19 +1146,18 @@ function drawSelectionHandles(ctx, annotation) {
     }
 
     // Draw circular handles for all types (cleaner look)
-    // White fill with subtle shadow effect
     ctx.beginPath();
     ctx.arc(cx, cy, hs / 2, 0, 2 * Math.PI);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
     ctx.strokeStyle = '#0066cc';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = lw;
     ctx.stroke();
 
     // For corner handles, add a small inner dot
     if ([HANDLE_TYPES.TOP_LEFT, HANDLE_TYPES.TOP_RIGHT, HANDLE_TYPES.BOTTOM_LEFT, HANDLE_TYPES.BOTTOM_RIGHT].includes(handle.type)) {
       ctx.beginPath();
-      ctx.arc(cx, cy, 1.5, 0, 2 * Math.PI);
+      ctx.arc(cx, cy, 1.5 / scale, 0, 2 * Math.PI);
       ctx.fillStyle = '#0066cc';
       ctx.fill();
     }
@@ -1158,7 +1169,7 @@ function drawSelectionHandles(ctx, annotation) {
       ctx.fillStyle = '#0066cc';
       ctx.fill();
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = lw;
       ctx.stroke();
     }
 
@@ -1197,19 +1208,21 @@ function drawMultiSelectionBounds(ctx) {
   const bounds = getSelectionBounds();
   if (!bounds) return;
 
+  const sc = state.scale || 1;
   ctx.strokeStyle = '#0066cc';
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([6, 3]);
-  ctx.strokeRect(bounds.x - 6, bounds.y - 6, bounds.width + 12, bounds.height + 12);
+  ctx.lineWidth = 1.5 / sc;
+  ctx.setLineDash([6 / sc, 3 / sc]);
+  const pad = 6 / sc;
+  ctx.strokeRect(bounds.x - pad, bounds.y - pad, bounds.width + pad * 2, bounds.height + pad * 2);
   ctx.setLineDash([]);
 
   // Draw corner handles for the overall bounding box
-  const hs = HANDLE_SIZE;
+  const hs = HANDLE_SIZE / sc;
   const corners = [
-    { x: bounds.x - 6 - hs/2, y: bounds.y - 6 - hs/2 },
-    { x: bounds.x + bounds.width + 6 - hs/2, y: bounds.y - 6 - hs/2 },
-    { x: bounds.x - 6 - hs/2, y: bounds.y + bounds.height + 6 - hs/2 },
-    { x: bounds.x + bounds.width + 6 - hs/2, y: bounds.y + bounds.height + 6 - hs/2 }
+    { x: bounds.x - pad - hs/2, y: bounds.y - pad - hs/2 },
+    { x: bounds.x + bounds.width + pad - hs/2, y: bounds.y - pad - hs/2 },
+    { x: bounds.x - pad - hs/2, y: bounds.y + bounds.height + pad - hs/2 },
+    { x: bounds.x + bounds.width + pad - hs/2, y: bounds.y + bounds.height + pad - hs/2 }
   ];
 
   corners.forEach(corner => {
@@ -1220,7 +1233,7 @@ function drawMultiSelectionBounds(ctx) {
     ctx.fillStyle = '#ffffff';
     ctx.fill();
     ctx.strokeStyle = '#0066cc';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1 / sc;
     ctx.stroke();
   });
 }
@@ -1253,7 +1266,8 @@ export function updateQuickAccessButtons() {
 }
 
 // Redraw all annotations (single page mode)
-export function redrawAnnotations() {
+// Pass lightweight=true during drag/resize to skip expensive DOM updates
+export function redrawAnnotations(lightweight = false) {
   if (!annotationCtx || !annotationCanvas) return;
 
   annotationCtx.clearRect(0, 0, annotationCanvas.width, annotationCanvas.height);
@@ -1291,14 +1305,59 @@ export function redrawAnnotations() {
   // Restore context
   annotationCtx.restore();
 
-  // Update annotation count in status bar
-  updateStatusAnnotations();
+  if (!lightweight) {
+    // Update annotation count in status bar
+    updateStatusAnnotations();
 
-  // Update annotations list panel
-  updateAnnotationsList();
+    // Update annotations list panel
+    updateAnnotationsList();
 
-  // Update quick access button states
-  updateQuickAccessButtons();
+    // Update quick access button states
+    updateQuickAccessButtons();
+
+    // Show/hide contextual ribbon tabs based on selection
+    updateContextualTabs();
+  }
+}
+
+// Disable all buttons/inputs in contextual tabs (enabled one-by-one as implemented)
+let _contextualTabsInitialized = false;
+function initContextualTabsDisabled() {
+  if (_contextualTabsInitialized) return;
+  _contextualTabsInitialized = true;
+  ['tab-format', 'tab-arrange'].forEach(tabId => {
+    const tab = document.getElementById(tabId);
+    if (!tab) return;
+    tab.querySelectorAll('button').forEach(btn => btn.disabled = true);
+    tab.querySelectorAll('select').forEach(sel => sel.disabled = true);
+    tab.querySelectorAll('input').forEach(inp => inp.disabled = true);
+    tab.querySelectorAll('.ribbon-style-item').forEach(el => el.classList.add('disabled'));
+  });
+  // Enable implemented buttons
+  ['arr-bring-forward', 'arr-bring-front', 'arr-send-backward', 'arr-send-back'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = false;
+  });
+}
+
+// Show/hide Format and Arrange contextual ribbon tabs
+function updateContextualTabs() {
+  initContextualTabsDisabled();
+  const hasSelection = state.selectedAnnotations.length > 0;
+  const els = document.querySelectorAll('.contextual-tabs');
+  els.forEach(el => {
+    if (hasSelection) {
+      el.classList.add('visible');
+    } else {
+      el.classList.remove('visible');
+      // If a contextual tab was active, switch back to Home
+      if (el.classList.contains('ribbon-tab') && el.classList.contains('active')) {
+        el.classList.remove('active');
+        const homeTab = document.querySelector('.ribbon-tab[data-tab="home"]');
+        if (homeTab) homeTab.click();
+      }
+    }
+  });
 }
 
 // Render annotations for a specific page (continuous mode)

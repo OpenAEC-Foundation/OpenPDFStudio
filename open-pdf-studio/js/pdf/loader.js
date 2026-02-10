@@ -9,7 +9,7 @@ import { colorArrayToHex } from '../utils/colors.js';
 import { generateThumbnails, refreshActiveTab } from '../ui/panels/left-panel.js';
 import { createTab, updateWindowTitle } from '../ui/chrome/tabs.js';
 import * as pdfjsLib from '../../pdfjs/build/pdf.mjs';
-import { isTauri, readBinaryFile, openFileDialog } from '../core/platform.js';
+import { isTauri, readBinaryFile, openFileDialog, lockFile } from '../core/platform.js';
 import { PDFDocument, PDFName, PDFDict, PDFArray, PDFRawStream } from '../../node_modules/pdf-lib/dist/pdf-lib.esm.js';
 
 // Cache for original PDF bytes (used by saver to avoid re-reading)
@@ -17,6 +17,10 @@ const originalBytesCache = new Map(); // filePath -> Uint8Array
 
 export function getCachedPdfBytes(filePath) {
   return originalBytesCache.get(filePath);
+}
+
+export function setCachedPdfBytes(filePath, bytes) {
+  originalBytesCache.set(filePath, bytes);
 }
 
 export function clearCachedPdfBytes(filePath) {
@@ -38,6 +42,9 @@ export async function loadPDF(filePath) {
     let typedArray;
 
     if (isTauri()) {
+      // Lock the file to prevent other apps from writing while we have it open
+      await lockFile(filePath);
+
       // Read file using Tauri fs plugin
       const data = await readBinaryFile(filePath);
       typedArray = new Uint8Array(data);

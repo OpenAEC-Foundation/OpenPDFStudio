@@ -2,8 +2,8 @@ import { state, getPageRotation } from '../core/state.js';
 import { showLoading, hideLoading } from '../ui/chrome/dialogs.js';
 import { hexToColorArray } from '../utils/colors.js';
 import { markDocumentSaved, updateWindowTitle } from '../ui/chrome/tabs.js';
-import { isTauri, readBinaryFile, writeBinaryFile, saveFileDialog } from '../core/platform.js';
-import { getCachedPdfBytes } from './loader.js';
+import { isTauri, readBinaryFile, writeBinaryFile, saveFileDialog, unlockFile, lockFile } from '../core/platform.js';
+import { getCachedPdfBytes, setCachedPdfBytes } from './loader.js';
 import { PDFDocument, PDFString, PDFName, PDFArray, PDFStream, degrees } from '../../node_modules/pdf-lib/dist/pdf-lib.esm.js';
 
 // Save PDF with annotations
@@ -34,6 +34,18 @@ export async function savePDF(saveAsPath = null) {
     const pages = pdfDocLib.getPages();
     const context = pdfDocLib.context;
 
+    // Ensure AcroForm DR (Default Resources) has fonts for FreeText annotations.
+    // PDF viewers resolve font names in DA strings through these resources.
+    const ftAnnotations = state.annotations.filter(a => a.type === 'textbox' || a.type === 'callout');
+    if (ftAnnotations.length > 0) {
+      // Collect all font names actually used
+      const usedFonts = new Set();
+      for (const ann of ftAnnotations) {
+        usedFonts.add(mapFontToPdfName(ann.fontFamily, ann.fontBold, ann.fontItalic));
+      }
+      ensureAcroFormFonts(pdfDocLib, context, usedFonts);
+    }
+
     // Group annotations by page
     const annotationsByPage = {};
     for (const ann of state.annotations) {
@@ -58,24 +70,33 @@ export async function savePDF(saveAsPath = null) {
       const pageHeight = page.getHeight();
       const pageAnnotations = annotationsByPage[pageNum] || [];
 
-      if (pageAnnotations.length === 0) continue;
-
-      // Helper to convert Y coordinate (flip for PDF)
-      const convertY = (y) => pageHeight - y;
-
-      // Get or create annotations array for the page
+      // Build annotations array: keep existing annotations we don't handle (widgets, links, etc.)
+      // and replace the ones we do with our state.annotations (which is the source of truth)
+      const handledSubtypes = new Set([
+        '/Highlight', '/Underline', '/StrikeOut', '/Squiggly',
+        '/Square', '/Circle', '/Line', '/Ink', '/PolyLine', '/Polygon',
+        '/Text', '/FreeText', '/Stamp'
+      ]);
+      let annotsArray = [];
       const annotsRef = page.node.get(PDFName.of('Annots'));
-      let annotsArray;
       if (annotsRef) {
         const lookedUp = context.lookup(annotsRef);
         if (lookedUp instanceof PDFArray) {
-          annotsArray = lookedUp.asArray().slice(); // Clone
-        } else {
-          annotsArray = [];
+          for (const ref of lookedUp.asArray()) {
+            const dict = context.lookup(ref);
+            const subtype = dict?.get?.(PDFName.of('Subtype'))?.toString();
+            if (!subtype || !handledSubtypes.has(subtype)) {
+              annotsArray.push(ref); // Keep annotations we don't manage
+            }
+          }
         }
-      } else {
-        annotsArray = [];
       }
+
+      // Skip pages with no changes: no annotations from us and no existing handled annotations removed
+      if (pageAnnotations.length === 0 && !annotsRef) continue;
+
+      // Helper to convert Y coordinate (flip for PDF)
+      const convertY = (y) => pageHeight - y;
 
       // Add our annotations
       for (const ann of pageAnnotations) {
@@ -126,7 +147,7 @@ export async function savePDF(saveAsPath = null) {
               T: PDFString.of(ann.author || 'User'),
               Contents: PDFString.of(ann.subject || ''),
               M: PDFString.of(new Date().toISOString()),
-              F: 4
+              F: computeAnnotFlags(ann)
             });
             break;
           }
@@ -151,7 +172,7 @@ export async function savePDF(saveAsPath = null) {
               T: PDFString.of(ann.author || 'User'),
               Contents: PDFString.of(ann.subject || ''),
               M: PDFString.of(new Date().toISOString()),
-              F: 4
+              F: computeAnnotFlags(ann)
             };
 
             annDictObj.BS = context.obj({
@@ -187,7 +208,7 @@ export async function savePDF(saveAsPath = null) {
               T: PDFString.of(ann.author || 'User'),
               Contents: PDFString.of(ann.subject || ''),
               M: PDFString.of(new Date().toISOString()),
-              F: 4
+              F: computeAnnotFlags(ann)
             };
 
             const circleBsStyle = ann.borderStyle === 'dashed' ? 'D' : ann.borderStyle === 'dotted' ? 'D' : 'S';
@@ -232,7 +253,7 @@ export async function savePDF(saveAsPath = null) {
               T: PDFString.of(ann.author || 'User'),
               Contents: PDFString.of(ann.subject || ''),
               M: PDFString.of(new Date().toISOString()),
-              F: 4
+              F: computeAnnotFlags(ann)
             };
 
             // Border style
@@ -300,13 +321,14 @@ export async function savePDF(saveAsPath = null) {
               T: PDFString.of(ann.author || 'User'),
               Contents: PDFString.of(ann.subject || ''),
               M: PDFString.of(new Date().toISOString()),
-              F: 4
+              F: computeAnnotFlags(ann)
             };
 
+            const inkBsStyle = ann.borderStyle === 'dashed' ? 'D' : ann.borderStyle === 'dotted' ? 'D' : 'S';
             inkDict.BS = context.obj({
               Type: 'Border',
               W: borderWidth,
-              S: 'S'
+              S: inkBsStyle
             });
 
             annotDict = context.obj(inkDict);
@@ -339,13 +361,14 @@ export async function savePDF(saveAsPath = null) {
               T: PDFString.of(ann.author || 'User'),
               Contents: PDFString.of(ann.subject || ''),
               M: PDFString.of(new Date().toISOString()),
-              F: 4
+              F: computeAnnotFlags(ann)
             };
 
+            const polylineBsStyle = ann.borderStyle === 'dashed' ? 'D' : ann.borderStyle === 'dotted' ? 'D' : 'S';
             polylineDict.BS = context.obj({
               Type: 'Border',
               W: borderWidth,
-              S: 'S'
+              S: polylineBsStyle
             });
 
             annotDict = context.obj(polylineDict);
@@ -355,7 +378,19 @@ export async function savePDF(saveAsPath = null) {
           case 'polygon':
           case 'cloud': {
             // Polygon annotation
-            if (!ann.points || ann.points.length < 3) {
+            let polyVertices = [];
+            let polyMinX = Infinity, polyMinY = Infinity, polyMaxX = -Infinity, polyMaxY = -Infinity;
+
+            if (ann.points && ann.points.length >= 3) {
+              // Use stored points (from loaded PDF annotations)
+              for (const pt of ann.points) {
+                const px = pt.x;
+                const py = convertY(pt.y);
+                polyVertices.push(px, py);
+                polyMinX = Math.min(polyMinX, px); polyMaxX = Math.max(polyMaxX, px);
+                polyMinY = Math.min(polyMinY, py); polyMaxY = Math.max(polyMaxY, py);
+              }
+            } else {
               // Generate points from bounding box for regular polygon
               const cx = ann.x + ann.width / 2;
               const cy = ann.y + ann.height / 2;
@@ -363,45 +398,43 @@ export async function savePDF(saveAsPath = null) {
               const ry = ann.height / 2;
               const sides = ann.sides || 6;
 
-              const vertices = [];
-              let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
               for (let i = 0; i < sides; i++) {
                 const angle = (i * 2 * Math.PI / sides) - Math.PI / 2;
                 const px = cx + rx * Math.cos(angle);
                 const py = convertY(cy + ry * Math.sin(angle));
-                vertices.push(px, py);
-                minX = Math.min(minX, px); maxX = Math.max(maxX, px);
-                minY = Math.min(minY, py); maxY = Math.max(maxY, py);
+                polyVertices.push(px, py);
+                polyMinX = Math.min(polyMinX, px); polyMaxX = Math.max(polyMaxX, px);
+                polyMinY = Math.min(polyMinY, py); polyMaxY = Math.max(polyMaxY, py);
               }
-
-              const strokeColorArr = ann.strokeColor ? hexToColorArray(ann.strokeColor) : colorArr;
-
-              const polygonDict = {
-                Type: 'Annot',
-                Subtype: 'Polygon',
-                Rect: [minX - borderWidth, minY - borderWidth, maxX + borderWidth, maxY + borderWidth],
-                Vertices: vertices,
-                C: strokeColorArr,
-                CA: opacity,
-                T: PDFString.of(ann.author || 'User'),
-                Contents: PDFString.of(ann.subject || ''),
-                M: PDFString.of(new Date().toISOString()),
-                F: 4
-              };
-
-              polygonDict.BS = context.obj({
-                Type: 'Border',
-                W: borderWidth,
-                S: 'S'
-              });
-
-              if (ann.fillColor && ann.fillColor !== 'none') {
-                polygonDict.IC = hexToColorArray(ann.fillColor);
-              }
-
-              annotDict = context.obj(polygonDict);
             }
+
+            const polyStrokeColor = ann.strokeColor ? hexToColorArray(ann.strokeColor) : colorArr;
+            const polyBsStyle = ann.borderStyle === 'dashed' ? 'D' : ann.borderStyle === 'dotted' ? 'D' : 'S';
+
+            const polygonDict = {
+              Type: 'Annot',
+              Subtype: 'Polygon',
+              Rect: [polyMinX - borderWidth, polyMinY - borderWidth, polyMaxX + borderWidth, polyMaxY + borderWidth],
+              Vertices: polyVertices,
+              C: polyStrokeColor,
+              CA: opacity,
+              T: PDFString.of(ann.author || 'User'),
+              Contents: PDFString.of(ann.subject || ''),
+              M: PDFString.of(new Date().toISOString()),
+              F: computeAnnotFlags(ann)
+            };
+
+            polygonDict.BS = context.obj({
+              Type: 'Border',
+              W: borderWidth,
+              S: polyBsStyle
+            });
+
+            if (ann.fillColor && ann.fillColor !== 'none') {
+              polygonDict.IC = hexToColorArray(ann.fillColor);
+            }
+
+            annotDict = context.obj(polygonDict);
             break;
           }
 
@@ -409,16 +442,45 @@ export async function savePDF(saveAsPath = null) {
           case 'textbox':
           case 'callout': {
             // FreeText annotation
-            const x1 = ann.x;
-            const y1 = convertY(ann.y + (ann.height || 50));
-            const x2 = ann.x + (ann.width || 150);
-            const y2 = convertY(ann.y);
+            const ftW = ann.width || 150;
+            const ftH = ann.height || 50;
+            const ftRotation = ann.rotation || 0;
+
+            // Compute Rect - if rotated, expand to bounding box of rotated textbox
+            let x1, y1, x2, y2;
+            if (ftRotation !== 0) {
+              const cxDoc = ann.x + ftW / 2;
+              const cyDoc = ann.y + ftH / 2;
+              const rad = ftRotation * Math.PI / 180;
+              const cosA = Math.abs(Math.cos(rad));
+              const sinA = Math.abs(Math.sin(rad));
+              const rotHalfW = (ftW / 2) * cosA + (ftH / 2) * sinA;
+              const rotHalfH = (ftW / 2) * sinA + (ftH / 2) * cosA;
+              x1 = cxDoc - rotHalfW;
+              y1 = convertY(cyDoc + rotHalfH);
+              x2 = cxDoc + rotHalfW;
+              y2 = convertY(cyDoc - rotHalfH);
+            } else {
+              x1 = ann.x;
+              y1 = convertY(ann.y + ftH);
+              x2 = ann.x + ftW;
+              y2 = convertY(ann.y);
+            }
 
             const fontSize = ann.fontSize || 14;
             const textColorArr = ann.textColor ? hexToColorArray(ann.textColor) : [0, 0, 0];
 
-            // Default appearance string for text rendering
-            const da = `${textColorArr[0]} ${textColorArr[1]} ${textColorArr[2]} rg /Helv ${fontSize} Tf`;
+            // Map font family + bold/italic to PDF standard font name
+            const pdfFontName = mapFontToPdfName(ann.fontFamily, ann.fontBold, ann.fontItalic);
+            const da = `${textColorArr[0]} ${textColorArr[1]} ${textColorArr[2]} rg /${pdfFontName} ${fontSize} Tf`;
+
+            // FreeText color mapping (must match loader):
+            //   C entry  = fill/background color (PDF.js reads annot.color → our fillColor)
+            //   IC entry = stroke/border color (pdf-lib reads IC → our strokeColor)
+            const ftFillColorArr = (ann.fillColor && ann.fillColor !== 'none')
+              ? hexToColorArray(ann.fillColor) : [];
+            const ftStrokeColorArr = (ann.strokeColor && ann.strokeColor !== 'none')
+              ? hexToColorArray(ann.strokeColor) : null;
 
             const annDictObj = {
               Type: 'Annot',
@@ -426,21 +488,25 @@ export async function savePDF(saveAsPath = null) {
               Rect: [x1, y1, x2, y2],
               Contents: PDFString.of(ann.text || ''),
               DA: PDFString.of(da),
-              C: colorArr,
+              C: ftFillColorArr,
               CA: opacity,
               T: PDFString.of(ann.author || 'User'),
               M: PDFString.of(new Date().toISOString()),
-              F: 4
+              F: computeAnnotFlags(ann)
             };
 
-            // Border
-            if (ann.strokeColor && ann.strokeColor !== 'none') {
-              annDictObj.C = hexToColorArray(ann.strokeColor);
-            }
+            // Border style
+            const ftBorderWidth = ann.lineWidth !== undefined ? ann.lineWidth : 1;
+            const ftBsStyle = ann.borderStyle === 'dashed' ? 'D' : ann.borderStyle === 'dotted' ? 'D' : 'S';
+            annDictObj.BS = context.obj({
+              Type: 'Border',
+              W: ftBorderWidth,
+              S: ftBsStyle
+            });
 
-            // Interior color (background)
-            if (ann.fillColor && ann.fillColor !== 'none') {
-              annDictObj.IC = hexToColorArray(ann.fillColor);
+            // Stroke/border color in IC (loader reads IC as border for FreeText)
+            if (ftStrokeColorArr) {
+              annDictObj.IC = ftStrokeColorArr;
             }
 
             // Callout line
@@ -451,13 +517,90 @@ export async function savePDF(saveAsPath = null) {
               const kneeY = ann.kneeY !== undefined ? convertY(ann.kneeY) : arrowY;
 
               // CL array: [arrowX, arrowY, kneeX, kneeY, textX, textY]
-              const textConnectionX = ann.arrowX < (ann.x + (ann.width || 150) / 2) ? x1 : x2;
+              const textConnectionX = ann.arrowX < (ann.x + ftW / 2) ? x1 : x2;
               const textConnectionY = (y1 + y2) / 2;
               annDictObj.CL = [arrowX, arrowY, kneeX, kneeY, textConnectionX, textConnectionY];
               annDictObj.IT = 'FreeTextCallout';
             }
 
             annotDict = context.obj(annDictObj);
+
+            // Generate appearance stream with rotation matrix if rotated
+            // The Matrix is needed so the loader can extract rotation angle on re-open.
+            // We must include text in the AP stream, otherwise viewers render the AP
+            // (which has no text) instead of Contents+DA, making text disappear.
+            if (ftRotation !== 0) {
+              const rad = -ftRotation * Math.PI / 180;
+              const cosR = Math.cos(rad);
+              const sinR = Math.sin(rad);
+
+              // The Rect is the expanded bounding box of the rotated textbox.
+              // Matrix maps BBox origin to Rect origin; we center the rotated content.
+              const rectW = x2 - x1;
+              const rectH = Math.abs(y2 - y1);
+              const cxBBox = ftW / 2;
+              const cyBBox = ftH / 2;
+              const tx = rectW / 2 - (cxBBox * cosR - cyBBox * sinR);
+              const ty = rectH / 2 - (cxBBox * sinR + cyBBox * cosR);
+
+              // Build stream content: border/fill + text
+              let ftStreamContent = '';
+              const [sr, sg, sb] = ann.strokeColor && ann.strokeColor !== 'none'
+                ? hexToRgb(ann.strokeColor) : [0, 0, 0];
+              ftStreamContent += `${ftBorderWidth} w\n${sr} ${sg} ${sb} RG\n`;
+              if (ann.fillColor && ann.fillColor !== 'none') {
+                const [fr, fg, fb] = hexToRgb(ann.fillColor);
+                ftStreamContent += `${fr} ${fg} ${fb} rg\n0 0 ${ftW} ${ftH} re B\n`;
+              } else {
+                ftStreamContent += `0 0 ${ftW} ${ftH} re S\n`;
+              }
+
+              // Render text inside the box
+              if (ann.text) {
+                const ftFontSize = ann.fontSize || 14;
+                const [tr, tg, tb] = ann.textColor ? hexToRgb(ann.textColor) : [0, 0, 0];
+                const pdfFont = mapFontToPdfName(ann.fontFamily, ann.fontBold, ann.fontItalic);
+                const padding = ftBorderWidth + 2;
+                const lineHeight = ftFontSize * 1.2;
+
+                ftStreamContent += `BT\n/${pdfFont} ${ftFontSize} Tf\n${tr} ${tg} ${tb} rg\n`;
+                // Split text into lines and render each
+                const lines = ann.text.split('\n');
+                let textY = ftH - padding - ftFontSize;
+                for (const line of lines) {
+                  if (textY < 0) break;
+                  // Escape PDF special chars in text string
+                  const escaped = line.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+                  ftStreamContent += `${padding} ${textY} Td\n(${escaped}) Tj\n`;
+                  // Reset position for next line (Td is relative, so negate previous)
+                  ftStreamContent += `${-padding} ${-textY} Td\n`;
+                  textY -= lineHeight;
+                }
+                ftStreamContent += 'ET\n';
+              }
+
+              // Create font dict for resources
+              const pdfFont = mapFontToPdfName(ann.fontFamily, ann.fontBold, ann.fontItalic);
+              const fontDict = context.obj({
+                Type: 'Font',
+                Subtype: 'Type1',
+                BaseFont: pdfFont
+              });
+
+              const ftApStream = context.stream(ftStreamContent, {
+                Type: 'XObject',
+                Subtype: 'Form',
+                BBox: [0, 0, ftW, ftH],
+                Matrix: [cosR, sinR, -sinR, cosR, tx, ty],
+                Resources: context.obj({
+                  Font: context.obj({ [pdfFont]: fontDict })
+                })
+              });
+              const ftApRef = context.register(ftApStream);
+              const ftApDict = context.obj({ N: ftApRef });
+              annotDict.set(PDFName.of('AP'), ftApDict);
+            }
+
             break;
           }
 
@@ -477,13 +620,13 @@ export async function savePDF(saveAsPath = null) {
               M: PDFString.of(new Date().toISOString()),
               Name: 'Comment',
               Open: false,
-              F: 4
+              F: computeAnnotFlags(ann)
             });
             break;
           }
 
           case 'stamp': {
-            // Stamp annotation
+            // Stamp annotation (text stamps without image data)
             const x1 = ann.x;
             const y1 = convertY(ann.y + ann.height);
             const x2 = ann.x + ann.width;
@@ -499,30 +642,83 @@ export async function savePDF(saveAsPath = null) {
               CA: opacity,
               T: PDFString.of(ann.author || 'User'),
               M: PDFString.of(new Date().toISOString()),
-              F: 4
+              F: computeAnnotFlags(ann)
             });
             break;
           }
 
+          case 'image':
           case 'signature': {
-            // Save signature as Stamp annotation
+            // Save image/signature as Stamp annotation with embedded image AP stream
             const x1 = ann.x;
             const y1 = convertY(ann.y + ann.height);
             const x2 = ann.x + ann.width;
             const y2 = convertY(ann.y);
+            const w = ann.width;
+            const h = ann.height;
 
             annotDict = context.obj({
               Type: 'Annot',
               Subtype: 'Stamp',
               Rect: [x1, y1, x2, y2],
-              Name: 'Signature',
-              Contents: PDFString.of('Signature'),
+              Name: ann.type === 'signature' ? 'Signature' : (ann.stampName || 'Image'),
+              Contents: PDFString.of(ann.type === 'signature' ? 'Signature' : (ann.stampText || ann.subject || '')),
               C: colorArr,
               CA: opacity,
               T: PDFString.of(ann.author || 'User'),
               M: PDFString.of(new Date().toISOString()),
-              F: 4
+              F: computeAnnotFlags(ann)
             });
+
+            // Embed the actual image data into the appearance stream
+            if (ann.imageData) {
+              try {
+                let embeddedImage;
+                const dataUrl = ann.imageData;
+                if (dataUrl.startsWith('data:image/jpeg') || dataUrl.startsWith('data:image/jpg')) {
+                  const base64 = dataUrl.split(',')[1];
+                  const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+                  embeddedImage = await pdfDocLib.embedJpg(bytes);
+                } else {
+                  // Default to PNG (covers data:image/png and other formats)
+                  const base64 = dataUrl.split(',')[1];
+                  const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+                  embeddedImage = await pdfDocLib.embedPng(bytes);
+                }
+
+                const imageRef = embeddedImage.ref;
+
+                // Build AP stream content with opacity via ExtGState
+                const alpha = ann.opacity !== undefined ? ann.opacity : 1;
+                let apContent;
+                const resources = { XObject: context.obj({ Img: imageRef }) };
+
+                if (alpha < 1) {
+                  const gsDict = context.obj({ Type: 'ExtGState', ca: alpha, CA: alpha });
+                  const gsRef = context.register(gsDict);
+                  resources.ExtGState = context.obj({ GS0: gsRef });
+                  apContent = `q\n/GS0 gs\n${w} 0 0 ${h} 0 0 cm\n/Img Do\nQ\n`;
+                } else {
+                  apContent = `q\n${w} 0 0 ${h} 0 0 cm\n/Img Do\nQ\n`;
+                }
+
+                // Create Form XObject that draws the image scaled to annotation size
+                const apStream = context.stream(
+                  apContent,
+                  {
+                    Type: 'XObject',
+                    Subtype: 'Form',
+                    BBox: [0, 0, w, h],
+                    Resources: context.obj(resources)
+                  }
+                );
+                const apStreamRef = context.register(apStream);
+                const apDict = context.obj({ N: apStreamRef });
+                annotDict.set(PDFName.of('AP'), apDict);
+              } catch (imgErr) {
+                console.warn('Failed to embed image in annotation:', imgErr);
+              }
+            }
             break;
           }
 
@@ -544,14 +740,15 @@ export async function savePDF(saveAsPath = null) {
               Contents: PDFString.of(ann.measureText || ''),
               M: PDFString.of(new Date().toISOString()),
               IT: 'LineDimension',
-              F: 4
+              F: computeAnnotFlags(ann)
             });
             break;
           }
         }
 
         // Generate appearance stream for better compatibility with other PDF viewers
-        if (annotDict) {
+        // Skip if AP was already set (e.g. image/signature with embedded image)
+        if (annotDict && !annotDict.get(PDFName.of('AP'))) {
           const apStream = generateAppearanceStream(context, ann, convertY);
           if (apStream) {
             const apStreamRef = context.register(apStream);
@@ -574,7 +771,15 @@ export async function savePDF(saveAsPath = null) {
     // Save the PDF
     const pdfBytes = await pdfDocLib.save();
     const outputPath = saveAsPath || state.currentPdfPath;
-    await writeBinaryFile(outputPath, new Uint8Array(pdfBytes));
+    const savedBytes = new Uint8Array(pdfBytes);
+
+    // Temporarily release lock so we can write, then re-lock
+    await unlockFile(outputPath);
+    await writeBinaryFile(outputPath, savedBytes);
+    await lockFile(outputPath);
+
+    // Update cache so subsequent saves use the latest PDF as base
+    setCachedPdfBytes(outputPath, savedBytes.slice());
 
     // Mark document as saved
     markDocumentSaved();
@@ -661,19 +866,11 @@ function generateAppearanceStream(context, ann, convertY) {
         streamContent += ann.fillColor ? 'B\n' : 'S\n';
         break;
       }
-      case 'line':
-      case 'arrow': {
-        const x1 = ann.startX, y1s = ann.startY, x2 = ann.endX, y2s = ann.endY;
-        const minX = Math.min(x1, x2) - 5;
-        const minY = Math.min(y1s, y2s) - 5;
-        const maxX = Math.max(x1, x2) + 5;
-        const maxY = Math.max(y1s, y2s) + 5;
-        bbox = [0, 0, maxX - minX, maxY - minY];
-        const [r, g, b] = hexToRgb(ann.strokeColor || ann.color || '#000000');
-        const lw = ann.lineWidth || 2;
-        streamContent = `${lw} w\n${r} ${g} ${b} RG\n`;
-        streamContent += `${x1 - minX} ${maxY - y1s} m ${x2 - minX} ${maxY - y2s} l S\n`;
-        break;
+      case 'line': {
+        // Skip AP stream for lines and arrows - let PDF viewers render natively
+        // from /L, /LE, and /BS entries. Custom AP streams cause coordinate
+        // mismatches between BBox and Rect, and override native arrowhead rendering.
+        return null;
       }
       case 'draw': {
         if (!ann.path || ann.path.length < 2) return null;
@@ -694,6 +891,14 @@ function generateAppearanceStream(context, ann, convertY) {
         streamContent += 'S\n';
         break;
       }
+      case 'text':
+      case 'textbox':
+      case 'callout': {
+        // Skip AP stream for FreeText - let PDF viewers render from Contents + DA
+        // natively, which properly displays text. AP stream only draws shapes,
+        // causing text to disappear in viewers that use AP over DA.
+        return null;
+      }
       default:
         return null;
     }
@@ -709,6 +914,127 @@ function generateAppearanceStream(context, ann, convertY) {
     console.warn('Failed to generate appearance stream for', ann.type, e);
     return null;
   }
+}
+
+// Map CSS font family + bold/italic to PDF standard font name for DA string
+function mapFontToPdfName(fontFamily, bold, italic) {
+  const f = (fontFamily || '').toLowerCase();
+
+  // Map well-known CSS fonts to PDF standard 14 font names
+  if (f.includes('courier') || f === 'mono' || f === 'monospace') {
+    if (bold && italic) return 'Courier-BoldOblique';
+    if (bold) return 'Courier-Bold';
+    if (italic) return 'Courier-Oblique';
+    return 'Courier';
+  }
+  if (f.includes('times') || (f.includes('serif') && !f.includes('sans'))) {
+    if (bold && italic) return 'Times-BoldItalic';
+    if (bold) return 'Times-Bold';
+    if (italic) return 'Times-Italic';
+    return 'Times-Roman';
+  }
+  if (f === 'helvetica' || f === 'arial' || f === 'sans-serif') {
+    if (bold && italic) return 'Helvetica-BoldOblique';
+    if (bold) return 'Helvetica-Bold';
+    if (italic) return 'Helvetica-Oblique';
+    return 'Helv';
+  }
+
+  // For non-standard fonts, preserve the actual name as CamelCase (no spaces)
+  // The loader's mapPdfFontName re-inserts spaces from CamelCase (e.g. "SegoeUI" → "Segoe UI")
+  let baseName = (fontFamily || 'Helvetica').replace(/\s+/g, '');
+  let suffix = '';
+  if (bold && italic) suffix = '-BoldItalic';
+  else if (bold) suffix = '-Bold';
+  else if (italic) suffix = '-Italic';
+  return baseName + suffix;
+}
+
+// Ensure AcroForm Default Resources contain fonts used by FreeText annotations
+// so DA strings can reference them (e.g. /Helv, /Courier, /SegoeUI)
+function ensureAcroFormFonts(pdfDoc, context, usedFonts) {
+  const catalog = context.lookup(context.trailerInfo.Root);
+  if (!catalog) return;
+
+  // Get or create AcroForm dictionary
+  let acroFormRef = catalog.get(PDFName.of('AcroForm'));
+  let acroForm;
+  if (acroFormRef) {
+    acroForm = context.lookup(acroFormRef);
+  }
+  if (!acroForm) {
+    acroForm = context.obj({ Fields: [] });
+    acroFormRef = context.register(acroForm);
+    catalog.set(PDFName.of('AcroForm'), acroFormRef);
+  }
+
+  // Get or create DR (Default Resources) dictionary
+  let drRef = acroForm.get(PDFName.of('DR'));
+  let dr;
+  if (drRef) {
+    dr = context.lookup(drRef);
+  }
+  if (!dr) {
+    dr = context.obj({});
+    acroForm.set(PDFName.of('DR'), dr);
+  }
+
+  // Get or create Font dictionary within DR
+  let fontDictRef = dr.get(PDFName.of('Font'));
+  let fontDict;
+  if (fontDictRef) {
+    fontDict = context.lookup(fontDictRef);
+  }
+  if (!fontDict) {
+    fontDict = context.obj({});
+    dr.set(PDFName.of('Font'), fontDict);
+  }
+
+  // Add standard 14 fonts
+  const standardFonts = [
+    'Helv', 'Helvetica', 'Helvetica-Bold', 'Helvetica-Oblique', 'Helvetica-BoldOblique',
+    'Courier', 'Courier-Bold', 'Courier-Oblique', 'Courier-BoldOblique',
+    'Times-Roman', 'Times-Bold', 'Times-Italic', 'Times-BoldItalic'
+  ];
+  const baseFontMap = { 'Helv': 'Helvetica' };
+
+  for (const fontName of standardFonts) {
+    if (!fontDict.get(PDFName.of(fontName))) {
+      const baseFont = baseFontMap[fontName] || fontName;
+      fontDict.set(PDFName.of(fontName), context.obj({
+        Type: 'Font',
+        Subtype: 'Type1',
+        BaseFont: baseFont,
+        Encoding: 'WinAnsiEncoding'
+      }));
+    }
+  }
+
+  // Also register any non-standard fonts actually used by annotations
+  // (e.g. "SegoeUI", "SegoeUI-Bold") so viewers can resolve the DA font reference
+  if (usedFonts) {
+    for (const fontName of usedFonts) {
+      if (!fontDict.get(PDFName.of(fontName))) {
+        // Extract base name (without style suffix) for BaseFont
+        const baseFont = fontName.replace(/-(Bold|Italic|BoldItalic|BoldOblique|Oblique)$/, '');
+        fontDict.set(PDFName.of(fontName), context.obj({
+          Type: 'Font',
+          Subtype: 'TrueType',
+          BaseFont: fontName,
+          Encoding: 'WinAnsiEncoding'
+        }));
+      }
+    }
+  }
+}
+
+// Compute annotation flags (F entry) from annotation properties
+function computeAnnotFlags(ann) {
+  let flags = 0;
+  if (ann.printable !== false) flags |= 4;   // Bit 3: Print (default on)
+  if (ann.readOnly) flags |= 64;              // Bit 7: ReadOnly
+  if (ann.locked) flags |= 128;               // Bit 8: Locked
+  return flags;
 }
 
 // Convert hex color to RGB values (0-1 range)

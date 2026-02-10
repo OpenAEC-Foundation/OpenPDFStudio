@@ -25,6 +25,7 @@ import { openPDFFile, loadPDF } from '../pdf/loader.js';
 import { savePDF, savePDFAs } from '../pdf/saver.js';
 import { showProperties, hideProperties, closePropertiesPanel, updateAnnotationProperties, updateTextFormatProperties, updateArrowProperties } from './panels/properties-panel.js';
 import { redrawAnnotations, redrawContinuous, updateQuickAccessButtons } from '../annotations/rendering.js';
+import { bringToFront, sendToBack, bringForward, sendBackward } from '../annotations/z-order.js';
 import { closeAllMenus, closeBackstage } from './chrome/menus.js';
 import { showPreferencesDialog, hidePreferencesDialog, savePreferencesFromDialog, resetPreferencesToDefaults, applyTheme, savePreferences } from '../core/preferences.js';
 import { showAboutDialog, showDocPropertiesDialog } from './chrome/dialogs.js';
@@ -39,18 +40,10 @@ function setupWindowControls() {
   document.getElementById('btn-minimize')?.addEventListener('click', () => minimizeWindow());
   document.getElementById('btn-maximize')?.addEventListener('click', () => maximizeWindow());
   document.getElementById('btn-close')?.addEventListener('click', async () => {
-    if (hasUnsavedChanges()) {
-      const names = getUnsavedDocumentNames().join(', ');
-      let result = false;
-      if (window.__TAURI__?.dialog?.ask) {
-        result = await window.__TAURI__.dialog.ask(
-          `The following files have unsaved changes:\n${names}\n\nDo you want to exit without saving?`,
-          { title: 'Unsaved Changes', kind: 'warning' }
-        );
-      } else {
-        result = confirm(`The following files have unsaved changes:\n${names}\n\nDo you want to exit without saving?`);
-      }
-      if (!result) return;
+    // Close each tab, prompting for unsaved changes (Save/Don't Save/Cancel)
+    while (state.documents.length > 0) {
+      const closed = await closeActiveTab();
+      if (!closed) return; // User cancelled
     }
     closeWindow();
   });
@@ -960,6 +953,20 @@ function setupRibbonEvents() {
     }
   });
 
+  // Z-Order buttons (Arrange ribbon)
+  document.getElementById('arr-bring-forward')?.addEventListener('click', () => {
+    for (const ann of state.selectedAnnotations) bringForward(ann);
+  });
+  document.getElementById('arr-bring-front')?.addEventListener('click', () => {
+    for (const ann of state.selectedAnnotations) bringToFront(ann);
+  });
+  document.getElementById('arr-send-backward')?.addEventListener('click', () => {
+    for (const ann of [...state.selectedAnnotations].reverse()) sendBackward(ann);
+  });
+  document.getElementById('arr-send-back')?.addEventListener('click', () => {
+    for (const ann of [...state.selectedAnnotations].reverse()) sendToBack(ann);
+  });
+
   // Theme selector
   document.getElementById('theme-select')?.addEventListener('change', (e) => {
     state.preferences.theme = e.target.value;
@@ -1001,17 +1008,33 @@ function setupWheelZoom() {
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
 
-      const zoomStep = 0.1;
-      const minZoom = 0.5;
-      const maxZoom = 5.0;
+      const minZoom = 0.25;
+      const maxZoom = 10.0;
+      const oldScale = state.scale;
 
-      if (e.deltaY < 0) {
-        // Zoom in
-        state.scale = Math.min(state.scale + zoomStep, maxZoom);
-      } else {
-        // Zoom out
-        state.scale = Math.max(state.scale - zoomStep, minZoom);
-      }
+      // Multiplicative zoom: smooth at all levels, works with trackpad pinch too
+      // Mouse wheel deltaY is ~±100 per tick, trackpad gives smaller values
+      const factor = Math.pow(0.999, e.deltaY);
+      state.scale = Math.min(Math.max(state.scale * factor, minZoom), maxZoom);
+
+      // Round to avoid floating point noise (e.g. 0.9999999 → 1.0)
+      state.scale = Math.round(state.scale * 1000) / 1000;
+
+      if (state.scale === oldScale) return;
+
+      // Anchor zoom to mouse cursor: find document point under cursor,
+      // re-render, then scroll so that same point is back under cursor
+      const mainView = e.currentTarget;
+      const canvas = annotationCanvas;
+      const canvasRect = canvas.getBoundingClientRect();
+
+      // Mouse position relative to canvas (in rendered pixels at old scale)
+      const mouseOnCanvasX = e.clientX - canvasRect.left;
+      const mouseOnCanvasY = e.clientY - canvasRect.top;
+
+      // Convert to unscaled document coordinates
+      const docX = mouseOnCanvasX / oldScale;
+      const docY = mouseOnCanvasY / oldScale;
 
       if (zoomLevel) {
         zoomLevel.value = `${Math.round(state.scale * 100)}%`;
@@ -1022,6 +1045,15 @@ function setupWheelZoom() {
       } else {
         await renderPage(state.currentPage);
       }
+
+      // After render, that document point is at new pixel position on canvas
+      const newCanvasRect = canvas.getBoundingClientRect();
+      const newPointViewportX = newCanvasRect.left + docX * state.scale;
+      const newPointViewportY = newCanvasRect.top + docY * state.scale;
+
+      // Scroll so that point moves back under the mouse cursor
+      mainView.scrollLeft += newPointViewportX - e.clientX;
+      mainView.scrollTop += newPointViewportY - e.clientY;
       return;
     }
 

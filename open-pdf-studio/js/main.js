@@ -7,7 +7,7 @@
 
 // Core modules
 import { state } from './core/state.js';
-import { loadPreferences } from './core/preferences.js';
+import { loadPreferences, savePreferences } from './core/preferences.js';
 import { initCanvasContexts } from './ui/dom-elements.js';
 
 // UI initialization
@@ -32,7 +32,7 @@ import { loadPDF } from './pdf/loader.js';
 import { initTextSelection } from './text/text-selection.js';
 
 // Tab management
-import { initTabs, createTab } from './ui/chrome/tabs.js';
+import { initTabs, createTab, closeActiveTab } from './ui/chrome/tabs.js';
 
 // Search/Find
 import { initFindBar } from './search/find-bar.js';
@@ -41,7 +41,7 @@ import { initFindBar } from './search/find-bar.js';
 import { initFontDropdowns } from './utils/fonts.js';
 
 // Tauri API
-import { isTauri, isDevMode, getOpenedFile, loadSession, saveSession, fileExists } from './core/platform.js';
+import { isTauri, isDevMode, getOpenedFile, loadSession, saveSession, fileExists, isDefaultPdfApp, openDefaultAppsSettings } from './core/platform.js';
 
 // Disable default browser context menu
 function disableDefaultContextMenu() {
@@ -112,6 +112,9 @@ async function init() {
   if (!hasCommandLineFile) {
     await restoreLastSession();
   }
+
+  // Check if this app is the default PDF handler
+  await checkDefaultPdfApp();
 }
 
 // Initialize preferences dialog drag functionality
@@ -198,25 +201,53 @@ async function checkCommandLineArgs() {
 
 // Save session data (open documents) before window closes
 function setupSessionSaveOnClose() {
+  // Intercept Tauri window close (Alt+F4, system close) to prompt for unsaved changes
+  if (isTauri()) {
+    try {
+      const win = window.__TAURI__?.window;
+      if (win) {
+        const currentWindow = win.getCurrentWindow();
+        currentWindow.onCloseRequested(async (event) => {
+          // Try to close all tabs, prompting for unsaved changes
+          while (state.documents.length > 0) {
+            const closed = await closeActiveTab();
+            if (!closed) {
+              // User cancelled — prevent window close
+              event.preventDefault();
+              return;
+            }
+          }
+          // All tabs closed (saved or discarded), save session and allow close
+          await saveSessionData();
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to setup close handler:', e);
+    }
+  }
+
   window.addEventListener('beforeunload', async () => {
     if (!isTauri()) return;
-
-    try {
-      // Get list of open file paths (only files that have been saved)
-      const openFiles = state.documents
-        .filter(doc => doc.filePath)
-        .map(doc => doc.filePath);
-
-      const sessionData = {
-        openFiles: openFiles,
-        activeIndex: state.activeDocumentIndex
-      };
-
-      await saveSession(sessionData);
-    } catch (e) {
-      console.warn('Failed to save session:', e);
-    }
+    await saveSessionData();
   });
+}
+
+// Save session data to disk
+async function saveSessionData() {
+  try {
+    const openFiles = state.documents
+      .filter(doc => doc.filePath)
+      .map(doc => doc.filePath);
+
+    const sessionData = {
+      openFiles: openFiles,
+      activeIndex: state.activeDocumentIndex
+    };
+
+    await saveSession(sessionData);
+  } catch (e) {
+    console.warn('Failed to save session:', e);
+  }
 }
 
 // Restore last session if preference is enabled
@@ -247,6 +278,39 @@ async function restoreLastSession() {
     }
   } catch (e) {
     console.warn('Failed to restore session:', e);
+  }
+}
+
+// Check if this app is the default PDF handler and suggest setting it
+async function checkDefaultPdfApp() {
+  if (!isTauri()) return;
+  if (state.preferences.dontAskDefaultPdf) return;
+
+  try {
+    const isDefault = await isDefaultPdfApp();
+    if (isDefault) return;
+
+    // Ask the user using native Tauri dialog
+    if (window.__TAURI__?.dialog?.message) {
+      const result = await window.__TAURI__.dialog.message(
+        'OpenPDFStudio is not set as the default app for opening PDF files. Would you like to set it as the default?',
+        {
+          title: 'Default PDF App',
+          kind: 'info',
+          buttons: { yes: 'Set as Default', no: "Don't Ask Again", cancel: 'Not Now' }
+        }
+      );
+
+      if (result === 'Yes' || result === 'Set as Default') {
+        await openDefaultAppsSettings();
+      } else if (result === 'No' || result === "Don't Ask Again") {
+        state.preferences.dontAskDefaultPdf = true;
+        savePreferences();
+      }
+      // 'Cancel' / 'Not Now' → do nothing, will ask again next time
+    }
+  } catch (e) {
+    console.warn('Failed to check default PDF app:', e);
   }
 }
 

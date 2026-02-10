@@ -62,9 +62,10 @@ function getAnnotationCenter(annotation) {
 }
 
 // Get handles for an annotation based on its type
-export function getAnnotationHandles(annotation) {
+// scale parameter ensures handles stay the same screen size at any zoom level
+export function getAnnotationHandles(annotation, scale = 1) {
   const handles = [];
-  const hs = HANDLE_SIZE;
+  const hs = HANDLE_SIZE / scale;
 
   switch (annotation.type) {
     case 'box':
@@ -83,7 +84,7 @@ export function getAnnotationHandles(annotation) {
       handles.push({ type: HANDLE_TYPES.LEFT, x: annotation.x - hs/2, y: annotation.y + annotation.height/2 - hs/2 });
       handles.push({ type: HANDLE_TYPES.RIGHT, x: annotation.x + annotation.width - hs/2, y: annotation.y + annotation.height/2 - hs/2 });
       // Rotation handle (above the shape)
-      handles.push({ type: HANDLE_TYPES.ROTATE, x: annotation.x + annotation.width/2 - hs/2, y: annotation.y - 25 - hs/2 });
+      handles.push({ type: HANDLE_TYPES.ROTATE, x: annotation.x + annotation.width/2 - hs/2, y: annotation.y - 25 / scale - hs/2 });
       break;
 
     case 'callout':
@@ -150,7 +151,7 @@ export function getAnnotationHandles(annotation) {
       handles.push({ type: HANDLE_TYPES.LEFT, x: annotation.x - hs/2, y: annotation.y + ch/2 - hs/2 });
       handles.push({ type: HANDLE_TYPES.RIGHT, x: annotation.x + cw - hs/2, y: annotation.y + ch/2 - hs/2 });
       // Rotation handle
-      handles.push({ type: HANDLE_TYPES.ROTATE, x: annotation.x + cw/2 - hs/2, y: annotation.y - 25 - hs/2 });
+      handles.push({ type: HANDLE_TYPES.ROTATE, x: annotation.x + cw/2 - hs/2, y: annotation.y - 25 / scale - hs/2 });
       break;
 
     case 'text':
@@ -206,7 +207,7 @@ export function getAnnotationHandles(annotation) {
       handles.push({ type: HANDLE_TYPES.LEFT, x: annotation.x - hs/2, y: annotation.y + annotation.height/2 - hs/2 });
       handles.push({ type: HANDLE_TYPES.RIGHT, x: annotation.x + annotation.width - hs/2, y: annotation.y + annotation.height/2 - hs/2 });
       // Rotation handle (above the image)
-      handles.push({ type: HANDLE_TYPES.ROTATE, x: annotation.x + annotation.width/2 - hs/2, y: annotation.y - 25 - hs/2 });
+      handles.push({ type: HANDLE_TYPES.ROTATE, x: annotation.x + annotation.width/2 - hs/2, y: annotation.y - 25 / scale - hs/2 });
       break;
 
     case 'redaction':
@@ -254,10 +255,10 @@ export function getAnnotationHandles(annotation) {
 }
 
 // Find which handle is at the given coordinates
-export function findHandleAt(x, y, annotation) {
+export function findHandleAt(x, y, annotation, scale = 1) {
   if (!annotation) return null;
-  const handles = getAnnotationHandles(annotation);
-  const hs = HANDLE_SIZE;
+  const handles = getAnnotationHandles(annotation, scale);
+  const hs = HANDLE_SIZE / scale;
 
   for (const handle of handles) {
     if (x >= handle.x && x <= handle.x + hs &&

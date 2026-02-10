@@ -205,3 +205,41 @@ export async function getUsername() {
   const result = await invoke('get_username');
   return result || 'User';
 }
+
+// Check if this app is the default PDF handler
+export async function isDefaultPdfApp() {
+  try {
+    return await invoke('is_default_pdf_app') === true;
+  } catch {
+    return false;
+  }
+}
+
+// Open Windows Default Apps settings page
+export async function openDefaultAppsSettings() {
+  try {
+    return await invoke('open_default_apps_settings');
+  } catch (e) {
+    console.warn('Failed to open default apps settings:', e);
+    return false;
+  }
+}
+
+// File locking - prevent other apps from writing to an open file
+export async function lockFile(path) {
+  try {
+    return await invoke('lock_file', { path });
+  } catch (e) {
+    console.warn('Failed to lock file:', e);
+    return false;
+  }
+}
+
+export async function unlockFile(path) {
+  try {
+    return await invoke('unlock_file', { path });
+  } catch (e) {
+    console.warn('Failed to unlock file:', e);
+    return false;
+  }
+}

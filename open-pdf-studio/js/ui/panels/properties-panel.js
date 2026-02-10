@@ -111,7 +111,7 @@ export function showProperties(annotation) {
 
   // Fill color (for shapes with fill)
   if (propFillColorGroup) {
-    if (['highlight', 'box', 'circle', 'textbox', 'callout', 'arrow'].includes(annotation.type)) {
+    if (['highlight', 'box', 'circle', 'textbox', 'callout', 'arrow', 'line'].includes(annotation.type)) {
       propFillColorGroup.style.display = 'flex';
       const fillPreview = document.getElementById('prop-fill-color-preview');
       const fillHex = document.getElementById('prop-fill-color-hex');
@@ -321,7 +321,7 @@ export function showProperties(annotation) {
     }
   }
 
-  // Arrow-specific properties (Line Endings section)
+  // Line endings properties (arrow only)
   if (propLineEndingsSection) {
     if (annotation.type === 'arrow') {
       propLineEndingsSection.style.display = 'block';
@@ -345,9 +345,9 @@ export function showProperties(annotation) {
     }
   }
 
-  // Arrow dimensions section
+  // Line/Arrow dimensions section
   if (propDimensionsSection) {
-    if (annotation.type === 'arrow') {
+    if (annotation.type === 'arrow' || annotation.type === 'line') {
       propDimensionsSection.style.display = 'block';
 
       // Calculate arrow length
@@ -364,7 +364,7 @@ export function showProperties(annotation) {
 
   // Border style visibility for arrow
   if (propBorderStyleGroup) {
-    if (['textbox', 'callout', 'arrow'].includes(annotation.type)) {
+    if (['textbox', 'callout', 'arrow', 'line'].includes(annotation.type)) {
       propBorderStyleGroup.style.display = 'flex';
       if (propBorderStyle) {
         propBorderStyle.value = annotation.borderStyle || 'solid';
@@ -618,7 +618,7 @@ export function updateAnnotationProperties() {
   const propStatus = document.getElementById('prop-status');
   if (propStatus) annotation.status = propStatus.value === 'none' ? undefined : propStatus.value;
 
-  // Arrow-specific properties
+  // Line ending properties (arrow only)
   if (annotation.type === 'arrow') {
     if (propArrowStart) annotation.startHead = propArrowStart.value;
     if (propArrowEnd) annotation.endHead = propArrowEnd.value;

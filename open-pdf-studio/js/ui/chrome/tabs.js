@@ -1,9 +1,11 @@
-import { state, createDocument, getActiveDocument, findDocumentByPath } from '../../core/state.js';
+import { state, createDocument, getActiveDocument, findDocumentByPath, clearSelection } from '../../core/state.js';
 import { renderPage, renderContinuous, clearPdfView } from '../../pdf/renderer.js';
 import { redrawAnnotations, redrawContinuous, updateQuickAccessButtons } from '../../annotations/rendering.js';
 import { updateAllStatus } from './status-bar.js';
 import { generateThumbnails, clearThumbnails, clearThumbnailCache, refreshActiveTab } from '../panels/left-panel.js';
 import { openPDFFile } from '../../pdf/loader.js';
+import { savePDF } from '../../pdf/saver.js';
+import { unlockFile } from '../../core/platform.js';
 
 const tabsContainer = document.getElementById('document-tabs');
 const noDocsMessage = document.getElementById('no-docs-message');
@@ -116,18 +118,26 @@ export async function closeTab(index, force = false) {
 
   const doc = state.documents[index];
 
-  // Check for unsaved changes
+  // Check for unsaved changes - show Save / Don't Save / Cancel dialog
   if (!force && doc.modified) {
-    let result = false;
-    if (window.__TAURI__?.dialog?.ask) {
-      result = await window.__TAURI__.dialog.ask(
-        `"${doc.fileName}" has unsaved changes. Do you want to close it anyway?`,
-        { title: 'Unsaved Changes', kind: 'warning' }
-      );
-    } else {
-      result = confirm(`"${doc.fileName}" has unsaved changes. Do you want to close it anyway?`);
+    const action = await showUnsavedChangesDialog(doc.fileName);
+    if (action === 'cancel') return false;
+    if (action === 'save') {
+      const saved = await savePDF();
+      if (!saved) return false; // Save failed or was cancelled
     }
-    if (!result) return false;
+    // action === 'dontsave' → proceed to close without saving
+  }
+
+  // Clear selection and hide contextual ribbon tabs
+  clearSelection();
+  document.querySelectorAll('.contextual-tabs').forEach(el => {
+    el.classList.remove('visible');
+  });
+
+  // Release file lock so other apps can write to it again
+  if (doc.filePath) {
+    await unlockFile(doc.filePath);
   }
 
   // Clear thumbnail cache for this document
@@ -153,6 +163,33 @@ export async function closeTab(index, force = false) {
   updateQuickAccessButtons();
 
   return true;
+}
+
+/**
+ * Show unsaved changes dialog with Save / Don't Save / Cancel options.
+ * Uses native Tauri 3-button dialog when available, falls back to browser confirm.
+ * @param {string} fileName - Name of the file with unsaved changes
+ * @returns {Promise<'save'|'dontsave'|'cancel'>}
+ */
+async function showUnsavedChangesDialog(fileName) {
+  if (window.__TAURI__?.dialog?.message) {
+    const result = await window.__TAURI__.dialog.message(
+      `Do you want to save changes to "${fileName}"?`,
+      {
+        title: 'Save Changes',
+        kind: 'warning',
+        buttons: { yes: 'Save', no: "Don't Save", cancel: 'Cancel' }
+      }
+    );
+    // result is 'Yes', 'No', or 'Cancel' (or the custom label string)
+    if (result === 'Yes' || result === 'Save') return 'save';
+    if (result === 'No' || result === "Don't Save") return 'dontsave';
+    return 'cancel';
+  }
+
+  // Fallback for non-Tauri: browser confirm (only supports 2 choices)
+  const result = confirm(`"${fileName}" has unsaved changes.\n\nClick OK to save before closing, or Cancel to discard changes.`);
+  return result ? 'save' : 'dontsave';
 }
 
 /**

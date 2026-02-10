@@ -98,6 +98,9 @@
       <button class="ribbon-tab" data-tab="forms">Forms</button>
       <button class="ribbon-tab" data-tab="organize">Organize</button>
       <button class="ribbon-tab" data-tab="help">Help</button>
+      <span class="ribbon-tab-separator contextual-tabs" id="contextual-tabs-separator"></span>
+      <button class="ribbon-tab contextual-tab contextual-tabs" data-tab="format" id="tab-format-btn">Format</button>
+      <button class="ribbon-tab contextual-tab contextual-tabs" data-tab="arrange" id="tab-arrange-btn">Arrange</button>
     </div>
 
     <!-- Home Tab Content -->
@@ -804,6 +807,452 @@
         </div>
       </div>
     </div>
+
+    <!-- Format Tab Content (contextual - shown when annotations selected) -->
+    <div class="ribbon-content contextual-tabs" id="tab-format">
+      <div class="ribbon-groups">
+
+        <!-- Styles Gallery Group -->
+        <div class="ribbon-group ribbon-group-wide">
+          <div class="ribbon-group-content">
+            <div class="ribbon-style-gallery" id="fmt-style-gallery">
+              <div class="ribbon-style-item" data-style="red" title="Red">
+                <div class="ribbon-style-preview" style="border-color: #ff0000; color: #ff0000;">
+                  <span>T</span>
+                </div>
+                <span class="ribbon-style-label">Red</span>
+              </div>
+              <div class="ribbon-style-item" data-style="purple" title="Purple">
+                <div class="ribbon-style-preview" style="border-color: #800080; color: #800080;">
+                  <span>T</span>
+                </div>
+                <span class="ribbon-style-label">Purple</span>
+              </div>
+              <div class="ribbon-style-item" data-style="indigo" title="Indigo">
+                <div class="ribbon-style-preview" style="border-color: #4b0082; color: #4b0082;">
+                  <span>T</span>
+                </div>
+                <span class="ribbon-style-label">Indigo</span>
+              </div>
+              <div class="ribbon-style-item" data-style="blue" title="Blue">
+                <div class="ribbon-style-preview" style="border-color: #0066cc; color: #0066cc;">
+                  <span>T</span>
+                </div>
+                <span class="ribbon-style-label">Blue</span>
+              </div>
+              <div class="ribbon-style-item" data-style="green" title="Green">
+                <div class="ribbon-style-preview" style="border-color: #008000; color: #008000;">
+                  <span>T</span>
+                </div>
+                <span class="ribbon-style-label">Green</span>
+              </div>
+              <div class="ribbon-style-item" data-style="yellow" title="Yellow">
+                <div class="ribbon-style-preview" style="border-color: #e6a817; color: #e6a817;">
+                  <span>T</span>
+                </div>
+                <span class="ribbon-style-label">Yellow</span>
+              </div>
+              <div class="ribbon-style-item" data-style="black" title="Black">
+                <div class="ribbon-style-preview" style="border-color: #000000; color: #000000;">
+                  <span>T</span>
+                </div>
+                <span class="ribbon-style-label">Black</span>
+              </div>
+              <div class="ribbon-style-item" data-style="red-cloudy" title="Red Cloudy">
+                <div class="ribbon-style-preview ribbon-style-cloudy" style="border-color: #ff0000; color: #ff0000; background: rgba(255,0,0,0.08);">
+                  <span>T</span>
+                </div>
+                <span class="ribbon-style-label">Red Cloudy</span>
+              </div>
+              <div class="ribbon-style-item" data-style="purple-cloudy" title="Purple Cloudy">
+                <div class="ribbon-style-preview ribbon-style-cloudy" style="border-color: #800080; color: #800080; background: rgba(128,0,128,0.08);">
+                  <span>T</span>
+                </div>
+                <span class="ribbon-style-label">Purple Cloudy</span>
+              </div>
+              <div class="ribbon-style-item" data-style="indigo-cloudy" title="Indigo Cloudy">
+                <div class="ribbon-style-preview ribbon-style-cloudy" style="border-color: #7b68ee; color: #7b68ee; background: rgba(123,104,238,0.15);">
+                  <span>T</span>
+                </div>
+                <span class="ribbon-style-label">Indigo Cloudy</span>
+              </div>
+            </div>
+            <button class="ribbon-gallery-more" id="fmt-style-more" title="More Styles">
+              <svg viewBox="0 0 8 14"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+            </button>
+          </div>
+          <div class="ribbon-group-label"></div>
+        </div>
+
+        <!-- Color Group -->
+        <div class="ribbon-group">
+          <div class="ribbon-group-content">
+            <div class="ribbon-color-preview-block">
+              <div class="ribbon-color-swatch" id="fmt-color-swatch">
+                <div class="ribbon-color-fill" id="fmt-fill-preview" style="background: #ffffff;"></div>
+                <div class="ribbon-color-stroke" id="fmt-stroke-preview" style="border-color: #ff0000;"></div>
+              </div>
+            </div>
+            <div class="ribbon-grid-col">
+              <div class="ribbon-grid-spacer"></div>
+              <button class="ribbon-row-btn ribbon-color-btn" id="fmt-fill-color" title="Fill Color">
+                <div class="ribbon-color-indicator" id="fmt-fill-indicator" style="background: #ffffff; border: 1px solid #ccc;"></div>
+                <span>Fill Color</span>
+                <svg class="dropdown-arrow" viewBox="0 0 8 5"><path d="M0 0l4 4 4-4z" fill="currentColor"/></svg>
+              </button>
+              <button class="ribbon-row-btn ribbon-color-btn" id="fmt-stroke-color" title="Stroke Color">
+                <div class="ribbon-color-indicator" id="fmt-stroke-indicator" style="background: #ff0000;"></div>
+                <span>Stroke Color</span>
+                <svg class="dropdown-arrow" viewBox="0 0 8 5"><path d="M0 0l4 4 4-4z" fill="currentColor"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="ribbon-group-label"></div>
+        </div>
+
+        <!-- Line/Border Group -->
+        <div class="ribbon-group">
+          <div class="ribbon-group-content">
+            <div class="ribbon-form-grid">
+              <div class="ribbon-form-row">
+                <label>Width:</label>
+                <select class="ribbon-form-select" id="fmt-line-width" title="Line Width">
+                  <option value="0.5">0.5 pt</option>
+                  <option value="1" selected>1 pt</option>
+                  <option value="2">2 pt</option>
+                  <option value="3">3 pt</option>
+                  <option value="4">4 pt</option>
+                  <option value="6">6 pt</option>
+                  <option value="8">8 pt</option>
+                </select>
+                <label>Opacity:</label>
+                <select class="ribbon-form-select ribbon-form-select-sm" id="fmt-opacity" title="Opacity">
+                  <option value="100">100%</option>
+                  <option value="90">90%</option>
+                  <option value="75">75%</option>
+                  <option value="50">50%</option>
+                  <option value="25">25%</option>
+                  <option value="10">10%</option>
+                </select>
+              </div>
+              <div class="ribbon-form-row">
+                <label>Border:</label>
+                <select class="ribbon-form-select" id="fmt-border-style" title="Border Style">
+                  <option value="solid">Solid</option>
+                  <option value="dashed">Dashed</option>
+                  <option value="dotted">Dotted</option>
+                </select>
+                <label>Blend Mode:</label>
+                <select class="ribbon-form-select ribbon-form-select-sm" id="fmt-blend-mode" title="Blend Mode">
+                  <option value="normal">Normal</option>
+                  <option value="multiply">Multiply</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="ribbon-group-label"></div>
+        </div>
+
+        <!-- Arrow Endpoints Group -->
+        <div class="ribbon-group">
+          <div class="ribbon-group-content">
+            <div class="ribbon-form-grid">
+              <div class="ribbon-form-row">
+                <label>Start:</label>
+                <select class="ribbon-form-select" id="fmt-arrow-start" title="Start Arrow">
+                  <option value="none">None</option>
+                  <option value="open">Open</option>
+                  <option value="closed">Closed</option>
+                  <option value="stealth">Stealth</option>
+                  <option value="diamond">Diamond</option>
+                  <option value="circle">Circle</option>
+                  <option value="square">Square</option>
+                  <option value="slash">Slash</option>
+                </select>
+              </div>
+              <div class="ribbon-form-row">
+                <label>End:</label>
+                <select class="ribbon-form-select" id="fmt-arrow-end" title="End Arrow">
+                  <option value="none">None</option>
+                  <option value="open">Open</option>
+                  <option value="closed">Closed</option>
+                  <option value="stealth">Stealth</option>
+                  <option value="diamond">Diamond</option>
+                  <option value="circle">Circle</option>
+                  <option value="square">Square</option>
+                  <option value="slash">Slash</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="ribbon-group-label"></div>
+        </div>
+
+        <!-- Style Tools Group -->
+        <div class="ribbon-group">
+          <div class="ribbon-group-content">
+            <div class="ribbon-grid-col">
+              <button class="ribbon-row-btn ribbon-dropdown-btn" id="fmt-style-tools" title="Style Tools">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="1" stroke="#555" stroke-width="1"/><path d="M5 6h6M5 8h4M5 10h5" stroke="#555" stroke-width="0.8"/></svg>
+                <span>Style Tools</span>
+                <svg class="dropdown-arrow" viewBox="0 0 8 5"><path d="M0 0l4 4 4-4z" fill="currentColor"/></svg>
+              </button>
+              <button class="ribbon-row-btn" id="fmt-reset-location" title="Reset Location">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M3 8a5 5 0 019.5-2" stroke="#555" stroke-width="1.5"/><path d="M5 3L3 6l3 0" fill="#555"/><circle cx="8" cy="8" r="1.5" fill="#555"/></svg>
+                <span>Reset Location</span>
+              </button>
+            </div>
+          </div>
+          <div class="ribbon-group-label"></div>
+        </div>
+
+        <!-- Properties Group -->
+        <div class="ribbon-group">
+          <div class="ribbon-group-content">
+            <div class="ribbon-grid-col">
+              <button class="ribbon-row-btn" id="fmt-open" title="Open Properties">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="1" stroke="#4a86c8" stroke-width="1.2"/><path d="M5 5h6M5 8h6M5 11h3" stroke="#4a86c8" stroke-width="0.8"/></svg>
+                <span>Open</span>
+              </button>
+              <button class="ribbon-row-btn" id="fmt-hide" title="Hide Annotation">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M2 8s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z" stroke="#555" stroke-width="1"/><circle cx="8" cy="8" r="2" stroke="#555" stroke-width="1"/><line x1="3" y1="13" x2="13" y2="3" stroke="#c00" stroke-width="1.2"/></svg>
+                <span>Hide</span>
+              </button>
+            </div>
+            <div class="ribbon-grid-col" style="justify-content: center;">
+              <div class="ribbon-form-row">
+                <label>Layer:</label>
+                <select class="ribbon-form-select" id="fmt-layer" title="Layer">
+                  <option value="none">None</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="ribbon-group-label">Properties</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Arrange Tab Content (contextual - shown when annotations selected) -->
+    <div class="ribbon-content contextual-tabs" id="tab-arrange">
+      <div class="ribbon-groups">
+
+        <!-- Alignment Group -->
+        <div class="ribbon-group">
+          <div class="ribbon-group-content">
+            <div class="ribbon-grid-col">
+              <button class="ribbon-row-btn" id="arr-align-left" title="Align Left">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="2" height="14" fill="#e6a817"/><rect x="4" y="3" width="8" height="3" fill="#e6a817" opacity="0.6"/><rect x="4" y="10" width="6" height="3" fill="#e6a817" opacity="0.6"/></svg>
+                <span>Left</span>
+              </button>
+              <button class="ribbon-row-btn" id="arr-align-center" title="Align Center">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="7" y="1" width="2" height="14" fill="#e6a817"/><rect x="3" y="3" width="10" height="3" fill="#e6a817" opacity="0.6"/><rect x="4" y="10" width="8" height="3" fill="#e6a817" opacity="0.6"/></svg>
+                <span>Center</span>
+              </button>
+              <button class="ribbon-row-btn" id="arr-align-right" title="Align Right">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="13" y="1" width="2" height="14" fill="#e6a817"/><rect x="4" y="3" width="8" height="3" fill="#e6a817" opacity="0.6"/><rect x="6" y="10" width="6" height="3" fill="#e6a817" opacity="0.6"/></svg>
+                <span>Right</span>
+              </button>
+            </div>
+            <div class="ribbon-grid-col">
+              <button class="ribbon-row-btn" id="arr-align-top" title="Align Top">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="2" fill="#e6a817"/><rect x="3" y="4" width="3" height="8" fill="#e6a817" opacity="0.6"/><rect x="10" y="4" width="3" height="6" fill="#e6a817" opacity="0.6"/></svg>
+                <span>Top</span>
+              </button>
+              <button class="ribbon-row-btn" id="arr-align-middle" title="Align Middle">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="7" width="14" height="2" fill="#e6a817"/><rect x="3" y="2" width="3" height="12" fill="#e6a817" opacity="0.6"/><rect x="10" y="4" width="3" height="8" fill="#e6a817" opacity="0.6"/></svg>
+                <span>Middle</span>
+              </button>
+              <button class="ribbon-row-btn" id="arr-align-bottom" title="Align Bottom">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="13" width="14" height="2" fill="#e6a817"/><rect x="3" y="4" width="3" height="8" fill="#e6a817" opacity="0.6"/><rect x="10" y="6" width="3" height="6" fill="#e6a817" opacity="0.6"/></svg>
+                <span>Bottom</span>
+              </button>
+            </div>
+            <div class="ribbon-grid-col">
+              <div class="ribbon-grid-spacer"></div>
+              <div class="ribbon-grid-spacer"></div>
+              <button class="ribbon-row-btn ribbon-dropdown-btn" id="arr-align-to" title="Align To">
+                <span>Align to Selection</span>
+                <svg class="dropdown-arrow" viewBox="0 0 8 5"><path d="M0 0l4 4 4-4z" fill="currentColor"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="ribbon-group-label">Alignment</div>
+        </div>
+
+        <!-- Distribute Group -->
+        <div class="ribbon-group">
+          <div class="ribbon-group-content">
+            <div class="ribbon-grid-col">
+              <button class="ribbon-row-btn" id="arr-dist-space-h" title="Space Horizontally">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="2" height="14" fill="#3e9b8e"/><rect x="13" y="1" width="2" height="14" fill="#3e9b8e"/><rect x="6" y="4" width="4" height="8" fill="#3e9b8e" opacity="0.5"/><path d="M4 8h2M10 8h2" stroke="#3e9b8e" stroke-width="1"/></svg>
+                <span>Space H.</span>
+              </button>
+              <button class="ribbon-row-btn" id="arr-dist-space-v" title="Space Vertically">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="2" fill="#3e9b8e"/><rect x="1" y="13" width="14" height="2" fill="#3e9b8e"/><rect x="4" y="6" width="8" height="4" fill="#3e9b8e" opacity="0.5"/><path d="M8 4v2M8 10v2" stroke="#3e9b8e" stroke-width="1"/></svg>
+                <span>Space V.</span>
+              </button>
+            </div>
+            <div class="ribbon-grid-col">
+              <button class="ribbon-row-btn" id="arr-dist-left" title="Distribute Left">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="1.5" height="12" fill="#3e9b8e"/><rect x="7" y="4" width="1.5" height="8" fill="#3e9b8e"/><rect x="13" y="2" width="1.5" height="12" fill="#3e9b8e"/></svg>
+                <span>Left</span>
+              </button>
+              <button class="ribbon-row-btn" id="arr-dist-top" title="Distribute Top">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="1.5" fill="#3e9b8e"/><rect x="4" y="7" width="8" height="1.5" fill="#3e9b8e"/><rect x="2" y="13" width="12" height="1.5" fill="#3e9b8e"/></svg>
+                <span>Top</span>
+              </button>
+            </div>
+            <div class="ribbon-grid-col">
+              <button class="ribbon-row-btn" id="arr-dist-center" title="Distribute Center">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="3" height="12" fill="#3e9b8e" opacity="0.4"/><rect x="6.5" y="4" width="3" height="8" fill="#3e9b8e" opacity="0.4"/><rect x="11" y="2" width="3" height="12" fill="#3e9b8e" opacity="0.4"/><line x1="3.5" y1="8" x2="12.5" y2="8" stroke="#3e9b8e" stroke-dasharray="1 1"/></svg>
+                <span>Center</span>
+              </button>
+              <button class="ribbon-row-btn" id="arr-dist-middle" title="Distribute Middle">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="3" fill="#3e9b8e" opacity="0.4"/><rect x="4" y="6.5" width="8" height="3" fill="#3e9b8e" opacity="0.4"/><rect x="2" y="11" width="12" height="3" fill="#3e9b8e" opacity="0.4"/><line x1="8" y1="3.5" x2="8" y2="12.5" stroke="#3e9b8e" stroke-dasharray="1 1"/></svg>
+                <span>Middle</span>
+              </button>
+            </div>
+            <div class="ribbon-grid-col">
+              <button class="ribbon-row-btn" id="arr-dist-right" title="Distribute Right">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="1.5" y="2" width="1.5" height="12" fill="#3e9b8e"/><rect x="7" y="4" width="1.5" height="8" fill="#3e9b8e"/><rect x="13" y="2" width="1.5" height="12" fill="#3e9b8e"/></svg>
+                <span>Right</span>
+              </button>
+              <button class="ribbon-row-btn" id="arr-dist-bottom" title="Distribute Bottom">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="1.5" width="12" height="1.5" fill="#3e9b8e"/><rect x="4" y="7" width="8" height="1.5" fill="#3e9b8e"/><rect x="2" y="13" width="12" height="1.5" fill="#3e9b8e"/></svg>
+                <span>Bottom</span>
+              </button>
+            </div>
+            <div class="ribbon-grid-col">
+              <div class="ribbon-grid-spacer"></div>
+              <button class="ribbon-row-btn ribbon-dropdown-btn" id="arr-dist-to" title="Distribute To">
+                <span>Distribute to Selection</span>
+                <svg class="dropdown-arrow" viewBox="0 0 8 5"><path d="M0 0l4 4 4-4z" fill="currentColor"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="ribbon-group-label">Distribute</div>
+        </div>
+
+        <!-- Size Group -->
+        <div class="ribbon-group">
+          <div class="ribbon-group-content">
+            <div class="ribbon-big-icon">
+              <svg viewBox="0 0 32 32" fill="none">
+                <rect x="4" y="4" width="24" height="24" rx="1" stroke="#4a86c8" stroke-width="1.5" stroke-dasharray="3 2"/>
+                <rect x="8" y="8" width="10" height="10" fill="#4a86c8" opacity="0.3" stroke="#4a86c8" stroke-width="1"/>
+                <rect x="14" y="14" width="10" height="10" fill="#4a86c8" opacity="0.3" stroke="#4a86c8" stroke-width="1"/>
+              </svg>
+            </div>
+            <div class="ribbon-grid-col">
+              <button class="ribbon-row-btn" id="arr-same-size" title="Same Size">
+                <span>Same Size</span>
+              </button>
+              <button class="ribbon-row-btn" id="arr-same-width" title="Same Width">
+                <span>Same Width</span>
+              </button>
+              <button class="ribbon-row-btn" id="arr-same-height" title="Same Height">
+                <span>Same Height</span>
+              </button>
+            </div>
+          </div>
+          <div class="ribbon-group-label">Size</div>
+        </div>
+
+        <!-- Rotate Group -->
+        <div class="ribbon-group">
+          <div class="ribbon-group-content">
+            <div class="ribbon-grid-col">
+              <button class="ribbon-row-btn" id="arr-rotate-ccw" title="Rotate 90° CCW">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M3 8a5 5 0 019.5-2" stroke="#555" stroke-width="1.5"/><path d="M5 3L3 6l3 0" fill="#555"/></svg>
+                <span>Rotate 90° CCW</span>
+              </button>
+              <button class="ribbon-row-btn" id="arr-rotate-cw" title="Rotate 90° CW">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M13 8a5 5 0 01-9.5-2" stroke="#555" stroke-width="1.5"/><path d="M11 3l2 3-3 0" fill="#555"/></svg>
+                <span>Rotate 90° CW</span>
+              </button>
+              <button class="ribbon-row-btn" id="arr-rotate-180" title="Rotate 180°">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 0112 0" stroke="#555" stroke-width="1.5"/><path d="M12 5l2 3-3 0" fill="#555"/><path d="M14 8a6 6 0 01-12 0" stroke="#555" stroke-width="1.5"/><path d="M4 11l-2-3 3 0" fill="#555"/></svg>
+                <span>Rotate 180°</span>
+              </button>
+            </div>
+          </div>
+          <div class="ribbon-group-label">Rotate</div>
+        </div>
+
+        <!-- Reflect Group -->
+        <div class="ribbon-group">
+          <div class="ribbon-group-content">
+            <div class="ribbon-grid-col">
+              <button class="ribbon-row-btn" id="arr-flip-h" title="Flip Horizontally">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="5" height="10" fill="#4a86c8" opacity="0.5"/><rect x="10" y="3" width="5" height="10" fill="#4a86c8" opacity="0.3" stroke="#4a86c8" stroke-width="0.5" stroke-dasharray="1 1"/><line x1="8" y1="1" x2="8" y2="15" stroke="#4a86c8" stroke-width="1" stroke-dasharray="2 1"/></svg>
+                <span>Horizontally</span>
+              </button>
+              <button class="ribbon-row-btn" id="arr-flip-v" title="Flip Vertically">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="3" y="1" width="10" height="5" fill="#4a86c8" opacity="0.5"/><rect x="3" y="10" width="10" height="5" fill="#4a86c8" opacity="0.3" stroke="#4a86c8" stroke-width="0.5" stroke-dasharray="1 1"/><line x1="1" y1="8" x2="15" y2="8" stroke="#4a86c8" stroke-width="1" stroke-dasharray="2 1"/></svg>
+                <span>Vertically</span>
+              </button>
+            </div>
+          </div>
+          <div class="ribbon-group-label">Reflect</div>
+        </div>
+
+        <!-- Z-Order Group -->
+        <div class="ribbon-group">
+          <div class="ribbon-group-content">
+            <div class="ribbon-grid-col">
+              <button class="ribbon-row-btn" id="arr-bring-forward" title="Bring Forward">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="5" width="8" height="8" fill="#aaa" stroke="#888" stroke-width="0.5"/><rect x="5" y="1" width="8" height="8" fill="#4a86c8" stroke="#3570a8" stroke-width="0.5"/><path d="M9 5v4H5" stroke="#3570a8" stroke-width="0.5"/></svg>
+                <span>Bring Forward</span>
+              </button>
+              <button class="ribbon-row-btn" id="arr-bring-front" title="Bring to Front">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="7" width="7" height="7" fill="#ccc" stroke="#aaa" stroke-width="0.5"/><rect x="3" y="5" width="7" height="7" fill="#bbb" stroke="#999" stroke-width="0.5"/><rect x="5" y="1" width="9" height="9" fill="#4a86c8" stroke="#3570a8" stroke-width="0.5"/></svg>
+                <span>Bring to Front</span>
+              </button>
+            </div>
+            <div class="ribbon-grid-col">
+              <button class="ribbon-row-btn" id="arr-send-backward" title="Send Backward">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="5" y="1" width="8" height="8" fill="#aaa" stroke="#888" stroke-width="0.5"/><rect x="1" y="5" width="8" height="8" fill="#4a86c8" stroke="#3570a8" stroke-width="0.5"/></svg>
+                <span>Send Backward</span>
+              </button>
+              <button class="ribbon-row-btn" id="arr-send-back" title="Send to Back">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="5" y="1" width="9" height="9" fill="#ccc" stroke="#aaa" stroke-width="0.5"/><rect x="3" y="3" width="7" height="7" fill="#bbb" stroke="#999" stroke-width="0.5"/><rect x="1" y="5" width="7" height="7" fill="#4a86c8" stroke="#3570a8" stroke-width="0.5"/></svg>
+                <span>Send to Back</span>
+              </button>
+            </div>
+          </div>
+          <div class="ribbon-group-label">Z-Order</div>
+        </div>
+
+        <!-- Transform Group -->
+        <div class="ribbon-group">
+          <div class="ribbon-group-content">
+            <div class="ribbon-transform-grid">
+              <div class="ribbon-transform-row">
+                <label>X:</label>
+                <input type="number" class="ribbon-transform-input" id="arr-pos-x" step="0.01">
+                <span class="ribbon-transform-unit">mm</span>
+                <label>W:</label>
+                <input type="number" class="ribbon-transform-input" id="arr-size-w" step="0.01">
+                <span class="ribbon-transform-unit">mm</span>
+              </div>
+              <div class="ribbon-transform-row">
+                <label>Y:</label>
+                <input type="number" class="ribbon-transform-input" id="arr-pos-y" step="0.01">
+                <span class="ribbon-transform-unit">mm</span>
+                <label>H:</label>
+                <input type="number" class="ribbon-transform-input" id="arr-size-h" step="0.01">
+                <span class="ribbon-transform-unit">mm</span>
+              </div>
+            </div>
+          </div>
+          <div class="ribbon-group-label">Transform</div>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 
   <!-- Document Tabs Bar -->
