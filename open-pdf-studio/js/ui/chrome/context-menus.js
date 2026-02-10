@@ -1,16 +1,16 @@
-import { state, clearSelection, isSelected } from '../core/state.js';
-import { annotationCanvas, propertiesPanel } from './dom-elements.js';
-import { showProperties, hideProperties, showMultiSelectionProperties } from './properties-panel.js';
-import { redrawAnnotations, redrawContinuous } from '../annotations/rendering.js';
-import { copyAnnotation, copyAnnotations, pasteFromClipboard, duplicateAnnotation } from '../annotations/clipboard.js';
-import { recordAdd, recordDelete, recordBulkDelete } from '../core/undo-manager.js';
-import { bringToFront, sendToBack, bringForward, sendBackward, rotateAnnotation, flipHorizontal, flipVertical } from '../annotations/z-order.js';
-import { startTextEditing } from '../tools/text-editing.js';
-import { createTextMarkupAnnotation } from '../text/text-markup.js';
-import { setAsDefaultStyle } from '../core/preferences.js';
-import { setTool } from '../tools/manager.js';
-import { alignAnnotations } from '../annotations/smart-guides.js';
-import { getSelectedText, getSelectionRectsForAnnotation, clearTextSelection } from '../text/text-selection.js';
+import { state, clearSelection, isSelected } from '../../core/state.js';
+import { annotationCanvas, propertiesPanel } from '../dom-elements.js';
+import { showProperties, hideProperties, showMultiSelectionProperties } from '../panels/properties-panel.js';
+import { redrawAnnotations, redrawContinuous } from '../../annotations/rendering.js';
+import { copyAnnotation, copyAnnotations, pasteFromClipboard, duplicateAnnotation } from '../../annotations/clipboard.js';
+import { recordAdd, recordDelete, recordBulkDelete } from '../../core/undo-manager.js';
+import { bringToFront, sendToBack, bringForward, sendBackward, rotateAnnotation, flipHorizontal, flipVertical } from '../../annotations/z-order.js';
+import { startTextEditing } from '../../tools/text-editing.js';
+import { createTextMarkupAnnotation } from '../../text/text-markup.js';
+import { setAsDefaultStyle } from '../../core/preferences.js';
+import { setTool } from '../../tools/manager.js';
+import { alignAnnotations } from '../../annotations/smart-guides.js';
+import { getSelectedText, getSelectionRectsForAnnotation, clearTextSelection } from '../../text/text-selection.js';
 
 // Create context menu element
 let contextMenu = null;
@@ -279,13 +279,13 @@ export function showPageContextMenu(e) {
 
   // View options
   menu.appendChild(createMenuItem('Actual Size', () => {
-    import('../pdf/renderer.js').then(({ actualSize }) => actualSize());
+    import('../../pdf/renderer.js').then(({ actualSize }) => actualSize());
   }));
   menu.appendChild(createMenuItem('Fit Width', () => {
-    import('../pdf/renderer.js').then(({ fitWidth }) => fitWidth());
+    import('../../pdf/renderer.js').then(({ fitWidth }) => fitWidth());
   }));
   menu.appendChild(createMenuItem('Fit Page', () => {
-    import('../pdf/renderer.js').then(({ fitPage }) => fitPage());
+    import('../../pdf/renderer.js').then(({ fitPage }) => fitPage());
   }));
 
   // Position menu
@@ -321,8 +321,8 @@ export function initContextMenus() {
       // Right-click finishes measure area/perimeter
       if ((state.currentTool === 'measureArea' || state.currentTool === 'measurePerimeter') && state.measurePoints && state.measurePoints.length >= 2) {
         e.preventDefault();
-        import('../annotations/factory.js').then(({ createAnnotation }) => {
-          import('../annotations/measurement.js').then(({ calculateArea, calculatePerimeter, formatMeasurement }) => {
+        import('../../annotations/factory.js').then(({ createAnnotation }) => {
+          import('../../annotations/measurement.js').then(({ calculateArea, calculatePerimeter, formatMeasurement }) => {
             const points = [...state.measurePoints];
             let ann;
             const mPrefs = state.preferences;
@@ -360,7 +360,7 @@ export function initContextMenus() {
               recordAdd(ann);
             }
             state.measurePoints = null;
-            import('../annotations/rendering.js').then(({ redrawAnnotations }) => {
+            import('../../annotations/rendering.js').then(({ redrawAnnotations }) => {
               redrawAnnotations();
             });
           });
@@ -371,7 +371,7 @@ export function initContextMenus() {
       // Right-click finishes polyline drawing
       if (state.currentTool === 'polyline' && state.isDrawingPolyline) {
         e.preventDefault();
-        import('../annotations/factory.js').then(({ createAnnotation }) => {
+        import('../../annotations/factory.js').then(({ createAnnotation }) => {
           if (state.polylinePoints.length >= 2) {
             const pPrefs = state.preferences;
             const ann = createAnnotation({
@@ -388,7 +388,7 @@ export function initContextMenus() {
           }
           state.polylinePoints = [];
           state.isDrawingPolyline = false;
-          import('../annotations/rendering.js').then(({ redrawAnnotations }) => {
+          import('../../annotations/rendering.js').then(({ redrawAnnotations }) => {
             redrawAnnotations();
           });
         });
@@ -400,7 +400,7 @@ export function initContextMenus() {
       const y = (e.clientY - rect.top) / state.scale;
 
       // Import findAnnotationAt dynamically
-      import('../annotations/geometry.js').then(({ findAnnotationAt }) => {
+      import('../../annotations/geometry.js').then(({ findAnnotationAt }) => {
         const annotation = findAnnotationAt(x, y);
         if (annotation) {
           showContextMenu(e, annotation);

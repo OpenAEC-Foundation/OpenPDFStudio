@@ -5,10 +5,10 @@ import { findAnnotationAt } from '../annotations/geometry.js';
 import { findHandleAt, getCursorForHandle } from '../annotations/handles.js';
 import { applyResize, applyMove, applyRotation } from '../annotations/transforms.js';
 import { redrawAnnotations, redrawContinuous, renderAnnotationsForPage, drawPolygonShape, drawCloudShape, snapToGrid } from '../annotations/rendering.js';
-import { showProperties, hideProperties, showMultiSelectionProperties } from '../ui/properties-panel.js';
-import { startTextEditing, addTextAnnotation, addComment } from '../tools/text-editing.js';
+import { showProperties, hideProperties, showMultiSelectionProperties } from '../ui/panels/properties-panel.js';
+import { startTextEditing, addTextAnnotation, addComment } from './text-editing.js';
 import { snapAngle } from '../utils/helpers.js';
-import { markDocumentModified } from '../ui/tabs.js';
+import { markDocumentModified } from '../ui/chrome/tabs.js';
 import { recordAdd, recordModify, recordBulkModify } from '../core/undo-manager.js';
 import { showStampPicker } from '../annotations/stamps.js';
 import { showSignatureDialog } from '../annotations/signature.js';
@@ -78,7 +78,7 @@ export function handleMouseDown(e) {
         state.isResizing = true;
         state.activeHandle = handleType;
         state.originalAnnotation = cloneAnnotation(state.selectedAnnotation);
-        annotationCanvas.style.cursor = getCursorForHandle(handleType);
+        annotationCanvas.style.cursor = getCursorForHandle(handleType, state.selectedAnnotation.rotation);
         return;
       }
     }
@@ -302,7 +302,7 @@ export function handleMouseMove(e) {
     if (state.selectedAnnotations.length === 1) {
       const handleType = findHandleAt(currentX, currentY, state.selectedAnnotation);
       if (handleType) {
-        annotationCanvas.style.cursor = getCursorForHandle(handleType);
+        annotationCanvas.style.cursor = getCursorForHandle(handleType, state.selectedAnnotation.rotation);
         return;
       }
     }

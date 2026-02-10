@@ -1,9 +1,9 @@
 import { state } from '../core/state.js';
 import { createAnnotation } from './factory.js';
 import { recordAdd } from '../core/undo-manager.js';
-import { showProperties } from '../ui/properties-panel.js';
+import { showProperties } from '../ui/panels/properties-panel.js';
 import { redrawAnnotations, redrawContinuous } from './rendering.js';
-import { updateStatusMessage } from '../ui/status-bar.js';
+import { updateStatusMessage } from '../ui/chrome/status-bar.js';
 import { generateImageId } from '../utils/helpers.js';
 
 let signatureDialog = null;

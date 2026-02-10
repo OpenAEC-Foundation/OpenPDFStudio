@@ -1,4 +1,4 @@
-import { ribbonTabs, ribbonContents } from './dom-elements.js';
+import { ribbonTabs, ribbonContents } from '../dom-elements.js';
 import { openBackstage } from './menus.js';
 
 // Initialize ribbon tab switching

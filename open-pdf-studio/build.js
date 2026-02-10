@@ -118,8 +118,14 @@ function fixNodeModulesPaths(dir) {
     } else if (entry.endsWith('.js')) {
       let content = fs.readFileSync(fullPath, 'utf8');
       // Replace node_modules paths with libs paths (preserve quote style)
-      let updated = content.replace(/'\.\.\/\.\.\/node_modules\//g, "'../../libs/");
-      updated = updated.replace(/"\.\.\/\.\.\/node_modules\//g, '"../../libs/');
+      // Replace any ../../../...node_modules/ paths with correct relative libs/ paths
+      let updated = content.replace(/(['"])((?:\.\.\/)+)node_modules\//g, (match, quote, dots) => {
+        // Calculate relative path from this file to the dist root
+        const relativeDir = path.relative(DIST, path.dirname(fullPath));
+        const depth = relativeDir.split(path.sep).filter(Boolean).length;
+        const prefix = '../'.repeat(depth);
+        return quote + prefix + 'libs/';
+      });
       if (content !== updated) {
         fs.writeFileSync(fullPath, updated);
         console.log(`    Fixed node_modules path in ${path.relative(DIST, fullPath)}`);

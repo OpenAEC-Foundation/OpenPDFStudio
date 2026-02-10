@@ -11,19 +11,19 @@ import { loadPreferences } from './core/preferences.js';
 import { initCanvasContexts } from './ui/dom-elements.js';
 
 // UI initialization
-import { initAboutDialog, initDocPropertiesDialog } from './ui/dialogs.js';
-import { initMenus } from './ui/menus.js';
-import { initRibbon } from './ui/ribbon.js';
-import { initContextMenus } from './ui/context-menus.js';
-import { initAnnotationsList } from './ui/annotations-list.js';
-import { initAttachments } from './ui/attachments.js';
-import { initLinks } from './ui/links.js';
-import { initAllColorPalettes, initAllPrefColorPalettes } from './ui/color-palette.js';
-import { updateAllStatus } from './ui/status-bar.js';
-import { initLeftPanel } from './ui/left-panel.js';
+import { initAboutDialog, initDocPropertiesDialog } from './ui/chrome/dialogs.js';
+import { initMenus } from './ui/chrome/menus.js';
+import { initRibbon } from './ui/chrome/ribbon.js';
+import { initContextMenus } from './ui/chrome/context-menus.js';
+import { initAnnotationsList } from './ui/panels/annotations-list.js';
+import { initAttachments } from './ui/panels/attachments.js';
+import { initLinks } from './ui/panels/links.js';
+import { initAllColorPalettes, initAllPrefColorPalettes } from './ui/panels/color-palette.js';
+import { updateAllStatus } from './ui/chrome/status-bar.js';
+import { initLeftPanel } from './ui/panels/left-panel.js';
 
 // Event setup
-import { setupEventListeners } from './events/setup.js';
+import { setupEventListeners } from './ui/setup.js';
 
 // PDF operations (for handling file drops from command line args)
 import { loadPDF } from './pdf/loader.js';
@@ -32,13 +32,16 @@ import { loadPDF } from './pdf/loader.js';
 import { initTextSelection } from './text/text-selection.js';
 
 // Tab management
-import { initTabs, createTab } from './ui/tabs.js';
+import { initTabs, createTab } from './ui/chrome/tabs.js';
 
 // Search/Find
 import { initFindBar } from './search/find-bar.js';
 
+// Font utilities
+import { initFontDropdowns } from './utils/fonts.js';
+
 // Tauri API
-import { isTauri, isDevMode, getOpenedFile, loadSession, saveSession, fileExists } from './tauri-api.js';
+import { isTauri, isDevMode, getOpenedFile, loadSession, saveSession, fileExists } from './core/platform.js';
 
 // Disable default browser context menu
 function disableDefaultContextMenu() {
@@ -83,6 +86,9 @@ async function init() {
 
   // Initialize find bar
   initFindBar();
+
+  // Populate font dropdowns with system fonts
+  initFontDropdowns();
 
   // Initialize preferences dialog drag
   initPreferencesDialogDrag();

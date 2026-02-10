@@ -1,10 +1,11 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "OpenPDFStudio",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "identifier": "org.openaec.openpdfstudio",
   "build": {
     "frontendDist": "../dist",
+    "devUrl": "http://localhost:3001",
     "beforeDevCommand": "npm run watch",
     "beforeBuildCommand": "npm run build"
   },

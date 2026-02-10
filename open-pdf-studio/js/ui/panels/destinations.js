@@ -1,5 +1,5 @@
-import { getActiveDocument } from '../core/state.js';
-import { goToPage } from '../pdf/renderer.js';
+import { getActiveDocument } from '../../core/state.js';
+import { goToPage } from '../../pdf/renderer.js';
 
 const destinationsContainer = document.getElementById('destinations-container');
 const destinationsCount = document.getElementById('destinations-count');

@@ -1,4 +1,4 @@
-import { getActiveDocument } from '../core/state.js';
+import { getActiveDocument } from '../../core/state.js';
 
 const tagsContainer = document.getElementById('tags-container');
 const tagsCount = document.getElementById('tags-count');

@@ -1452,6 +1452,7 @@ body {
 
 .thumbnail-canvas {
   max-width: 100%;
+  height: auto;
   background: white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
@@ -1984,7 +1985,7 @@ body {
 }
 
 .property-section-content {
-  overflow: hidden;
+  overflow: visible;
 }
 
 .property-section.collapsed .property-section-content {
@@ -4562,7 +4563,7 @@ body {
 }
 
 #text-annot-font-family {
-  width: 120px;
+  width: 160px;
 }
 
 #text-annot-font-size {

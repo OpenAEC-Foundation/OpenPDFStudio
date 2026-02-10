@@ -1,4 +1,4 @@
-import { getActiveDocument } from '../core/state.js';
+import { getActiveDocument } from '../../core/state.js';
 
 const layersContainer = document.getElementById('layers-container');
 const layersCount = document.getElementById('layers-count');

@@ -1,6 +1,6 @@
 import { state, getActiveDocument, getPageRotation, setPageRotation } from './state.js';
 import { cloneAnnotation } from '../annotations/factory.js';
-import { markDocumentModified } from '../ui/tabs.js';
+import { markDocumentModified } from '../ui/chrome/tabs.js';
 
 const MAX_UNDO_STACK = 100;
 
@@ -58,7 +58,7 @@ export async function undo() {
   applyUndo(cmd);
   markDocumentModified();
 
-  const { hideProperties } = await import('../ui/properties-panel.js');
+  const { hideProperties } = await import('../ui/panels/properties-panel.js');
   hideProperties();
   await refresh();
 }
@@ -75,7 +75,7 @@ export async function redo() {
   applyRedo(cmd);
   markDocumentModified();
 
-  const { hideProperties } = await import('../ui/properties-panel.js');
+  const { hideProperties } = await import('../ui/panels/properties-panel.js');
   hideProperties();
   await refresh();
 }

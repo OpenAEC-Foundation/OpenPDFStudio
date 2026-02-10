@@ -1,5 +1,5 @@
-import { state, getActiveDocument, getPageRotation } from '../core/state.js';
-import { goToPage } from '../pdf/renderer.js';
+import { state, getActiveDocument, getPageRotation } from '../../core/state.js';
+import { goToPage } from '../../pdf/renderer.js';
 import { updateAnnotationsList } from './annotations-list.js';
 import { updateAttachmentsList } from './attachments.js';
 import { updateSignaturesList } from './signatures.js';
@@ -465,8 +465,6 @@ function displayCachedThumbnail(placeholder, imageData) {
   const img = document.createElement('img');
   img.className = 'thumbnail-canvas';
   img.src = imageData.dataURL;
-  img.style.width = `${imageData.width}px`;
-  img.style.height = `${imageData.height}px`;
   canvas.replaceWith(img);
 }
 

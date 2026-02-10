@@ -2,6 +2,89 @@ import { HANDLE_TYPES } from '../core/constants.js';
 import { state } from '../core/state.js';
 import { snapAngle } from '../utils/helpers.js';
 
+// Rotate a delta vector from screen space into the annotation's local coordinate space
+function rotateDelta(deltaX, deltaY, rotationDeg) {
+  if (!rotationDeg) return { dx: deltaX, dy: deltaY };
+  const rad = -rotationDeg * Math.PI / 180;
+  return {
+    dx: deltaX * Math.cos(rad) - deltaY * Math.sin(rad),
+    dy: deltaX * Math.sin(rad) + deltaY * Math.cos(rad)
+  };
+}
+
+// Apply resize for a rotated rectangular annotation.
+// The idea: resize in local (unrotated) space, then reposition so the
+// anchor corner (opposite to the dragged handle) stays in the same
+// screen position.
+function applyRotatedResize(annotation, handleType, deltaX, deltaY, originalAnn) {
+  const rot = originalAnn.rotation || 0;
+  const { dx, dy } = rotateDelta(deltaX, deltaY, rot);
+
+  // Start from original values
+  let newX = originalAnn.x;
+  let newY = originalAnn.y;
+  let newW = originalAnn.width;
+  let newH = originalAnn.height;
+
+  // Apply local-space resize
+  switch (handleType) {
+    case HANDLE_TYPES.TOP_LEFT:
+      newX += dx; newY += dy; newW -= dx; newH -= dy;
+      break;
+    case HANDLE_TYPES.TOP_RIGHT:
+      newY += dy; newW += dx; newH -= dy;
+      break;
+    case HANDLE_TYPES.BOTTOM_LEFT:
+      newX += dx; newW -= dx; newH += dy;
+      break;
+    case HANDLE_TYPES.BOTTOM_RIGHT:
+      newW += dx; newH += dy;
+      break;
+    case HANDLE_TYPES.TOP:
+      newY += dy; newH -= dy;
+      break;
+    case HANDLE_TYPES.BOTTOM:
+      newH += dy;
+      break;
+    case HANDLE_TYPES.LEFT:
+      newX += dx; newW -= dx;
+      break;
+    case HANDLE_TYPES.RIGHT:
+      newW += dx;
+      break;
+  }
+
+  // Enforce minimum size
+  if (newW < 10) { newW = 10; }
+  if (newH < 10) { newH = 10; }
+
+  // The center of the original annotation in screen space
+  const rad = rot * Math.PI / 180;
+  const cosR = Math.cos(rad);
+  const sinR = Math.sin(rad);
+
+  const origCx = originalAnn.x + originalAnn.width / 2;
+  const origCy = originalAnn.y + originalAnn.height / 2;
+
+  // New center in local space (relative to old local origin)
+  const newLocalCx = newX + newW / 2;
+  const newLocalCy = newY + newH / 2;
+
+  // Offset of new center from old center in local space
+  const localOffX = newLocalCx - (originalAnn.x + originalAnn.width / 2);
+  const localOffY = newLocalCy - (originalAnn.y + originalAnn.height / 2);
+
+  // Rotate offset back to screen space to get the new screen center
+  const screenCx = origCx + localOffX * cosR - localOffY * sinR;
+  const screenCy = origCy + localOffX * sinR + localOffY * cosR;
+
+  // Set annotation position from screen center
+  annotation.x = screenCx - newW / 2;
+  annotation.y = screenCy - newH / 2;
+  annotation.width = newW;
+  annotation.height = newH;
+}
+
 // Apply resize based on handle being dragged
 export function applyResize(annotation, handleType, deltaX, deltaY, originalAnn, shiftKey = false) {
   if (annotation.locked) return;
@@ -13,45 +96,49 @@ export function applyResize(annotation, handleType, deltaX, deltaY, originalAnn,
     case 'polygon':
     case 'cloud':
     case 'textbox':
-      switch (handleType) {
-        case HANDLE_TYPES.TOP_LEFT:
-          annotation.x = originalAnn.x + deltaX;
-          annotation.y = originalAnn.y + deltaY;
-          annotation.width = originalAnn.width - deltaX;
-          annotation.height = originalAnn.height - deltaY;
-          break;
-        case HANDLE_TYPES.TOP_RIGHT:
-          annotation.y = originalAnn.y + deltaY;
-          annotation.width = originalAnn.width + deltaX;
-          annotation.height = originalAnn.height - deltaY;
-          break;
-        case HANDLE_TYPES.BOTTOM_LEFT:
-          annotation.x = originalAnn.x + deltaX;
-          annotation.width = originalAnn.width - deltaX;
-          annotation.height = originalAnn.height + deltaY;
-          break;
-        case HANDLE_TYPES.BOTTOM_RIGHT:
-          annotation.width = originalAnn.width + deltaX;
-          annotation.height = originalAnn.height + deltaY;
-          break;
-        case HANDLE_TYPES.TOP:
-          annotation.y = originalAnn.y + deltaY;
-          annotation.height = originalAnn.height - deltaY;
-          break;
-        case HANDLE_TYPES.BOTTOM:
-          annotation.height = originalAnn.height + deltaY;
-          break;
-        case HANDLE_TYPES.LEFT:
-          annotation.x = originalAnn.x + deltaX;
-          annotation.width = originalAnn.width - deltaX;
-          break;
-        case HANDLE_TYPES.RIGHT:
-          annotation.width = originalAnn.width + deltaX;
-          break;
+      if (originalAnn.rotation) {
+        applyRotatedResize(annotation, handleType, deltaX, deltaY, originalAnn);
+      } else {
+        switch (handleType) {
+          case HANDLE_TYPES.TOP_LEFT:
+            annotation.x = originalAnn.x + deltaX;
+            annotation.y = originalAnn.y + deltaY;
+            annotation.width = originalAnn.width - deltaX;
+            annotation.height = originalAnn.height - deltaY;
+            break;
+          case HANDLE_TYPES.TOP_RIGHT:
+            annotation.y = originalAnn.y + deltaY;
+            annotation.width = originalAnn.width + deltaX;
+            annotation.height = originalAnn.height - deltaY;
+            break;
+          case HANDLE_TYPES.BOTTOM_LEFT:
+            annotation.x = originalAnn.x + deltaX;
+            annotation.width = originalAnn.width - deltaX;
+            annotation.height = originalAnn.height + deltaY;
+            break;
+          case HANDLE_TYPES.BOTTOM_RIGHT:
+            annotation.width = originalAnn.width + deltaX;
+            annotation.height = originalAnn.height + deltaY;
+            break;
+          case HANDLE_TYPES.TOP:
+            annotation.y = originalAnn.y + deltaY;
+            annotation.height = originalAnn.height - deltaY;
+            break;
+          case HANDLE_TYPES.BOTTOM:
+            annotation.height = originalAnn.height + deltaY;
+            break;
+          case HANDLE_TYPES.LEFT:
+            annotation.x = originalAnn.x + deltaX;
+            annotation.width = originalAnn.width - deltaX;
+            break;
+          case HANDLE_TYPES.RIGHT:
+            annotation.width = originalAnn.width + deltaX;
+            break;
+        }
+        // Ensure minimum size
+        if (annotation.width < 10) annotation.width = 10;
+        if (annotation.height < 10) annotation.height = 10;
       }
-      // Ensure minimum size
-      if (annotation.width < 10) annotation.width = 10;
-      if (annotation.height < 10) annotation.height = 10;
       break;
 
     case 'callout':

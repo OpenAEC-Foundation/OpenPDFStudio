@@ -1,8 +1,8 @@
 import { state } from '../core/state.js';
 import { cloneAnnotation } from './factory.js';
 import { generateImageId } from '../utils/helpers.js';
-import { updateStatusMessage } from '../ui/status-bar.js';
-import { showProperties, showMultiSelectionProperties } from '../ui/properties-panel.js';
+import { updateStatusMessage } from '../ui/chrome/status-bar.js';
+import { showProperties, showMultiSelectionProperties } from '../ui/panels/properties-panel.js';
 import { redrawAnnotations, redrawContinuous } from './rendering.js';
 import { annotationCanvas, pdfContainer } from '../ui/dom-elements.js';
 import { recordAdd, recordBulkAdd } from '../core/undo-manager.js';

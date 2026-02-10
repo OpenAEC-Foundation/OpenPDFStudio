@@ -1,5 +1,5 @@
-import { getActiveDocument } from '../core/state.js';
-import { goToPage } from '../pdf/renderer.js';
+import { getActiveDocument } from '../../core/state.js';
+import { goToPage } from '../../pdf/renderer.js';
 
 const formFieldsContainer = document.getElementById('form-fields-container');
 const formFieldsCount = document.getElementById('form-fields-count');

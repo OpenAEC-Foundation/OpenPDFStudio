@@ -1,6 +1,6 @@
 import { state } from '../core/state.js';
 import { annotationCtx } from '../ui/dom-elements.js';
-import { distanceToLine, isPointNearRect, isPointNearEllipse } from '../utils/geometry.js';
+import { distanceToLine, isPointNearRect, isPointNearEllipse } from '../utils/math.js';
 
 // Transform a point by inverse rotation around a center point
 // This converts screen coordinates to the annotation's local (unrotated) coordinate system

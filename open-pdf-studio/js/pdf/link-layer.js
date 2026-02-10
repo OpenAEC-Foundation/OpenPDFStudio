@@ -1,6 +1,6 @@
 import { state } from '../core/state.js';
 import { goToPage } from './renderer.js';
-import { openExternal } from '../tauri-api.js';
+import { openExternal } from '../core/platform.js';
 
 /**
  * Link Layer Management Module

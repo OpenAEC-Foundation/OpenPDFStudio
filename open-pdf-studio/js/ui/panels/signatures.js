@@ -1,4 +1,4 @@
-import { getActiveDocument } from '../core/state.js';
+import { getActiveDocument } from '../../core/state.js';
 
 const signaturesContainer = document.getElementById('signatures-container');
 const signaturesCount = document.getElementById('signatures-count');

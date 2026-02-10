@@ -1,8 +1,9 @@
-import { state, getSelectionBounds } from '../core/state.js';
-import { annotationCtx, propertiesPanel } from './dom-elements.js';
-import { formatDate, getTypeDisplayName } from '../utils/helpers.js';
-import { redrawAnnotations, redrawContinuous } from '../annotations/rendering.js';
-import { recordPropertyChange } from '../core/undo-manager.js';
+import { state, getSelectionBounds } from '../../core/state.js';
+import { annotationCtx, propertiesPanel } from '../dom-elements.js';
+import { formatDate, getTypeDisplayName } from '../../utils/helpers.js';
+import { redrawAnnotations, redrawContinuous } from '../../annotations/rendering.js';
+import { recordPropertyChange } from '../../core/undo-manager.js';
+import { ensureFontInSelect } from '../../utils/fonts.js';
 
 // Import property panel elements
 import {
@@ -20,7 +21,7 @@ import {
   propImageRotation,
   propLineEndingsSection, propArrowStart, propArrowEnd, propArrowHeadSize,
   propDimensionsSection, propArrowLength
-} from './dom-elements.js';
+} from '../dom-elements.js';
 
 // Update color display helper
 export function updateColorDisplay(palette, color, preview, hex) {
@@ -80,7 +81,7 @@ export function showProperties(annotation) {
   }
 
   if (propLineWidth) {
-    propLineWidth.value = annotation.lineWidth || 3;
+    propLineWidth.value = annotation.lineWidth !== undefined ? annotation.lineWidth : 3;
     propLineWidth.disabled = isLocked;
   }
 
@@ -242,7 +243,9 @@ export function showProperties(annotation) {
 
       // Font family
       if (propFontFamily) {
-        propFontFamily.value = annotation.fontFamily || 'Arial';
+        const ff = annotation.fontFamily || 'Arial';
+        ensureFontInSelect(propFontFamily, ff);
+        propFontFamily.value = ff;
         propFontFamily.disabled = isLocked;
       }
 
@@ -304,14 +307,18 @@ export function showProperties(annotation) {
     }
   }
 
-  // Line width visibility
+  // Line width visibility and label
   if (['highlight', 'comment', 'image', 'textHighlight'].includes(annotation.type)) {
     if (propLineWidthGroup) propLineWidthGroup.style.display = 'none';
-  } else if (['textStrikethrough', 'textUnderline'].includes(annotation.type)) {
-    // Text strikethrough and underline can have line width
-    if (propLineWidthGroup) propLineWidthGroup.style.display = 'flex';
   } else {
-    if (propLineWidthGroup) propLineWidthGroup.style.display = 'flex';
+    if (propLineWidthGroup) {
+      propLineWidthGroup.style.display = 'flex';
+      const lwLabel = propLineWidthGroup.querySelector('label');
+      if (lwLabel) {
+        lwLabel.textContent = ['textbox', 'callout', 'box', 'circle', 'polygon', 'cloud'].includes(annotation.type)
+          ? 'Border Width' : 'Line Width';
+      }
+    }
   }
 
   // Arrow-specific properties (Line Endings section)
@@ -591,7 +598,7 @@ export function updateAnnotationProperties() {
 
   // Appearance
   if (propColor) annotation.color = propColor.value;
-  if (propLineWidth) annotation.lineWidth = parseInt(propLineWidth.value);
+  if (propLineWidth) annotation.lineWidth = parseFloat(propLineWidth.value);
   // Get opacity from slider
   if (propOpacity) {
     annotation.opacity = parseInt(propOpacity.value) / 100;

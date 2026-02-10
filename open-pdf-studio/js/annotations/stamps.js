@@ -1,9 +1,9 @@
 import { state } from '../core/state.js';
 import { createAnnotation } from './factory.js';
 import { recordAdd } from '../core/undo-manager.js';
-import { showProperties } from '../ui/properties-panel.js';
+import { showProperties } from '../ui/panels/properties-panel.js';
 import { redrawAnnotations, redrawContinuous } from './rendering.js';
-import { updateStatusMessage } from '../ui/status-bar.js';
+import { updateStatusMessage } from '../ui/chrome/status-bar.js';
 
 // Built-in stamp definitions
 export const BUILT_IN_STAMPS = [
@@ -177,11 +177,11 @@ function placeStamp(stamp, x, y) {
 // Load custom stamp from image file
 async function loadCustomStamp(x, y) {
   try {
-    const { openFileDialog } = await import('../tauri-api.js');
+    const { openFileDialog } = await import('../core/platform.js');
     const filePath = await openFileDialog(['png', 'jpg', 'jpeg', 'bmp', 'gif', 'svg']);
     if (!filePath) return;
 
-    const { readBinaryFile } = await import('../tauri-api.js');
+    const { readBinaryFile } = await import('../core/platform.js');
     const data = await readBinaryFile(filePath);
     const blob = new Blob([data]);
     const url = URL.createObjectURL(blob);

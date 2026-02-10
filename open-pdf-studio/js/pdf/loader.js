@@ -1,15 +1,16 @@
 import { state, getActiveDocument } from '../core/state.js';
 import { placeholder, pdfContainer, fileInfo } from '../ui/dom-elements.js';
-import { showLoading, hideLoading } from '../ui/dialogs.js';
-import { updateAllStatus } from '../ui/status-bar.js';
+import { showLoading, hideLoading } from '../ui/chrome/dialogs.js';
+import { updateAllStatus } from '../ui/chrome/status-bar.js';
 import { renderPage, setViewMode } from './renderer.js';
 import { createAnnotation } from '../annotations/factory.js';
 import { generateImageId } from '../utils/helpers.js';
 import { colorArrayToHex } from '../utils/colors.js';
-import { generateThumbnails, refreshActiveTab } from '../ui/left-panel.js';
-import { createTab, updateWindowTitle } from '../ui/tabs.js';
+import { generateThumbnails, refreshActiveTab } from '../ui/panels/left-panel.js';
+import { createTab, updateWindowTitle } from '../ui/chrome/tabs.js';
 import * as pdfjsLib from '../../pdfjs/build/pdf.mjs';
-import { isTauri, readBinaryFile, openFileDialog } from '../tauri-api.js';
+import { isTauri, readBinaryFile, openFileDialog } from '../core/platform.js';
+import { PDFDocument, PDFName, PDFDict, PDFArray, PDFRawStream } from '../../node_modules/pdf-lib/dist/pdf-lib.esm.js';
 
 // Cache for original PDF bytes (used by saver to avoid re-reading)
 const originalBytesCache = new Map(); // filePath -> Uint8Array
@@ -126,8 +127,26 @@ export async function loadExistingAnnotations() {
     const viewport = page.getViewport({ scale: 1 }); // Use scale 1 for coordinate conversion
     const annotations = await page.getAnnotations();
 
+    // Extract extra annotation data from PDF structure using pdf-lib
+    const stampAnnots = annotations.filter(a => a.subtype === 'Stamp');
+    const needsExtraData = annotations.some(a => ['FreeText', 'Square', 'Circle', 'Line', 'PolyLine', 'Polygon', 'Ink', 'Text', 'Highlight', 'Underline', 'StrikeOut', 'Squiggly'].includes(a.subtype));
+    let stampImageMap = null;
+    let annotColorMap = null;
+    if (stampAnnots.length > 0 || needsExtraData) {
+      const pdfBytes = originalBytesCache.get(state.currentPdfPath);
+      if (pdfBytes) {
+        const pdfLibDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+        if (stampAnnots.length > 0) {
+          stampImageMap = await extractStampImages(pageNum, pdfLibDoc);
+        }
+        if (needsExtraData) {
+          annotColorMap = await extractAnnotationColors(pageNum, pdfLibDoc);
+        }
+      }
+    }
+
     for (const annot of annotations) {
-      const converted = convertPdfAnnotation(annot, pageNum, viewport);
+      const converted = await convertPdfAnnotation(annot, pageNum, viewport, stampImageMap, annotColorMap);
       if (converted) {
         state.annotations.push(converted);
       }
@@ -135,8 +154,699 @@ export async function loadExistingAnnotations() {
   }
 }
 
+// Map PDF internal font name to CSS font family, and extract bold/italic style info
+// Returns { family, bold, italic } or null
+function mapPdfFontName(pdfName) {
+  if (!pdfName) return null;
+  // Remove leading slash if present
+  const name = pdfName.replace(/^\//, '');
+
+  // Skip pure reference names like "F1", "F8", "Ff12" - these are not real font names
+  if (/^[Ff]\d+$/.test(name)) return null;
+
+  // Common PDF standard font mappings
+  const fontMap = {
+    'Helv': { family: 'Helvetica' },
+    'HeBo': { family: 'Helvetica', bold: true },
+    'Helvetica': { family: 'Helvetica' },
+    'Helvetica-Bold': { family: 'Helvetica', bold: true },
+    'Helvetica-Oblique': { family: 'Helvetica', italic: true },
+    'Helvetica-BoldOblique': { family: 'Helvetica', bold: true, italic: true },
+    'Cour': { family: 'Courier New' },
+    'Courier': { family: 'Courier New' },
+    'Courier-Bold': { family: 'Courier New', bold: true },
+    'Courier-Oblique': { family: 'Courier New', italic: true },
+    'Courier-BoldOblique': { family: 'Courier New', bold: true, italic: true },
+    'TiRo': { family: 'Times New Roman' },
+    'Times': { family: 'Times New Roman' },
+    'Times-Roman': { family: 'Times New Roman' },
+    'Times-Bold': { family: 'Times New Roman', bold: true },
+    'Times-Italic': { family: 'Times New Roman', italic: true },
+    'Times-BoldItalic': { family: 'Times New Roman', bold: true, italic: true },
+    'Symbol': { family: 'Symbol' },
+    'ZapfDingbats': { family: 'ZapfDingbats' },
+    'ZaDb': { family: 'ZapfDingbats' },
+    'Arial': { family: 'Arial' },
+    'ArialMT': { family: 'Arial' },
+    'Arial-BoldMT': { family: 'Arial', bold: true },
+    'Arial-ItalicMT': { family: 'Arial', italic: true },
+    'Arial-BoldItalicMT': { family: 'Arial', bold: true, italic: true },
+  };
+
+  if (fontMap[name]) return fontMap[name];
+
+  // Try to extract base font family from composite names like "SegoeUI-Bold", "ABCDEF+SegoeUI"
+  let cleaned = name;
+  // Remove subset prefix (e.g., "ABCDEF+")
+  cleaned = cleaned.replace(/^[A-Z]{6}\+/, '');
+
+  // Detect bold/italic from style suffixes before removing them
+  const stylePart = cleaned.match(/[-,](Bold|Italic|Regular|Light|Medium|Semibold|SemiBold|Thin|ExtraBold|Black|Oblique|BoldItalic|BoldOblique|It)+$/i);
+  let bold = false, italic = false;
+  if (stylePart) {
+    const s = stylePart[0].toLowerCase();
+    bold = /bold|black|extrabold/i.test(s);
+    italic = /italic|oblique|(?:^|-)it$/i.test(s);
+  }
+
+  // Remove style suffixes
+  cleaned = cleaned.replace(/[-,](Bold|Italic|Regular|Light|Medium|Semibold|SemiBold|Thin|ExtraBold|Black|Oblique|BoldItalic|BoldOblique|It)+$/i, '');
+
+  // Insert spaces before capitals for CamelCase names (e.g., "SegoeUI" → "Segoe UI")
+  const spaced = cleaned.replace(/([a-z])([A-Z])/g, '$1 $2');
+
+  return spaced ? { family: spaced, bold, italic } : null;
+}
+
+// Helper to map PDF.js borderStyle.style to our border style string
+// PDF.js values: 1=SOLID, 2=DASHED, 3=BEVELED, 4=INSET, 5=UNDERLINE
+function mapBorderStyle(annot) {
+  const style = annot.borderStyle?.style;
+  if (style === 2) return 'dashed';
+  if (style === 3 || style === 4) return 'dotted';
+  return 'solid';
+}
+
+// Helper to get number from pdf-lib PDFNumber
+function pdfNum(obj) {
+  if (!obj) return null;
+  if (typeof obj === 'number') return obj;
+  if (typeof obj.numberValue === 'number') return obj.numberValue;
+  if (typeof obj.asNumber === 'function') return obj.asNumber();
+  return null;
+}
+
+// Decompress zlib/deflate data using Web Streams API
+async function inflateBytes(compressed) {
+  try {
+    const ds = new DecompressionStream('deflate');
+    const writer = ds.writable.getWriter();
+    const reader = ds.readable.getReader();
+    writer.write(compressed);
+    writer.close();
+    const chunks = [];
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+    let total = 0;
+    for (const c of chunks) total += c.length;
+    const result = new Uint8Array(total);
+    let offset = 0;
+    for (const c of chunks) { result.set(c, offset); offset += c.length; }
+    return result;
+  } catch (e) {
+    // Try raw deflate (no zlib header)
+    try {
+      const ds = new DecompressionStream('raw');
+      const writer = ds.writable.getWriter();
+      const reader = ds.readable.getReader();
+      writer.write(compressed);
+      writer.close();
+      const chunks = [];
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+      let total = 0;
+      for (const c of chunks) total += c.length;
+      const result = new Uint8Array(total);
+      let offset = 0;
+      for (const c of chunks) { result.set(c, offset); offset += c.length; }
+      return result;
+    } catch (e2) {
+      return null;
+    }
+  }
+}
+
+// Convert pdf-lib color array to hex
+function pdfColorToHex(colorArray, context) {
+  if (!colorArray || typeof colorArray.size !== 'function' || colorArray.size() < 3) return null;
+  const r = pdfNum(colorArray.get(0)), g = pdfNum(colorArray.get(1)), b = pdfNum(colorArray.get(2));
+  if (r === null || g === null || b === null) return null;
+  return `#${Math.round(r * 255).toString(16).padStart(2, '0')}${Math.round(g * 255).toString(16).padStart(2, '0')}${Math.round(b * 255).toString(16).padStart(2, '0')}`;
+}
+
+// Extract colors (IC, appearance stream) from annotations using pdf-lib
+// Returns Map<rectKey, { ic, apStrokeColor }> where ic = Interior Color hex, apStrokeColor = stroke from appearance stream
+async function extractAnnotationColors(pageNum, pdfDoc) {
+  const colorMap = new Map();
+  try {
+    const page = pdfDoc.getPages()[pageNum - 1];
+    if (!page) return colorMap;
+    const context = pdfDoc.context;
+    const annotsRaw = page.node.get(PDFName.of('Annots'));
+    if (!annotsRaw) return colorMap;
+    const annots = context.lookup(annotsRaw);
+    if (!annots) return colorMap;
+
+    for (let i = 0; i < annots.size(); i++) {
+      const annotDict = context.lookup(annots.get(i));
+      if (!annotDict) continue;
+      const subtype = annotDict.get(PDFName.of('Subtype'));
+      if (!subtype) continue;
+      const subtypeName = subtype.toString();
+
+      // Get rect key for matching
+      const rectRaw = annotDict.get(PDFName.of('Rect'));
+      if (!rectRaw) continue;
+      const rect = context.lookup(rectRaw);
+      if (!rect || typeof rect.size !== 'function') continue;
+      const key = `${pdfNum(rect.get(0))},${pdfNum(rect.get(1))},${pdfNum(rect.get(2))},${pdfNum(rect.get(3))}`;
+
+      const colors = {};
+
+      // Read /CA (opacity) entry for ALL annotation types - PDF.js doesn't always expose this
+      const caRaw = annotDict.get(PDFName.of('CA'));
+      if (caRaw) {
+        const caVal = pdfNum(context.lookup(caRaw) || caRaw);
+        if (caVal !== null && caVal >= 0 && caVal <= 1) {
+          colors.opacity = caVal;
+        }
+      }
+
+      // IC and type-specific extraction only for shape/text annotations
+      const needsIcTypes = ['/FreeText', '/Square', '/Circle', '/Line', '/PolyLine', '/Polygon'];
+      if (needsIcTypes.includes(subtypeName)) {
+        // Read IC (Interior Color) entry
+        const icRaw = annotDict.get(PDFName.of('IC'));
+        if (icRaw) {
+          const ic = context.lookup(icRaw);
+          colors.ic = pdfColorToHex(ic, context);
+        }
+
+        // For Line annotations, read original /L array (PDF.js normalizeRect destroys direction)
+        if (subtypeName === '/Line') {
+          const lRaw = annotDict.get(PDFName.of('L'));
+          if (lRaw) {
+            const lArr = context.lookup(lRaw) || lRaw;
+            if (lArr && typeof lArr.size === 'function' && lArr.size() >= 4) {
+              colors.lineCoords = [
+                pdfNum(lArr.get(0)),
+                pdfNum(lArr.get(1)),
+                pdfNum(lArr.get(2)),
+                pdfNum(lArr.get(3))
+              ];
+            }
+          }
+        }
+      }
+
+      // For FreeText, extract border width from /BS or /Border, rotation, and stroke color
+      if (subtypeName === '/FreeText') {
+        // Read /BS (Border Style) dictionary → /W entry
+        const bsRaw = annotDict.get(PDFName.of('BS'));
+        if (bsRaw) {
+          const bs = context.lookup(bsRaw);
+          if (bs) {
+            const wRaw = bs.get(PDFName.of('W'));
+            if (wRaw) {
+              const w = pdfNum(context.lookup(wRaw) || wRaw);
+              if (w !== null) colors.borderWidth = w;
+            }
+          }
+        }
+        // Fallback: /Border array [H V W] - third element is width
+        if (colors.borderWidth === undefined) {
+          const borderRaw = annotDict.get(PDFName.of('Border'));
+          if (borderRaw) {
+            const border = context.lookup(borderRaw) || borderRaw;
+            if (border && typeof border.size === 'function' && border.size() >= 3) {
+              const w = pdfNum(border.get(2));
+              if (w !== null) colors.borderWidth = w;
+            }
+          }
+        }
+
+        // Extract font family from /DR (default resources) → /Font → /BaseFont
+        const daRaw = annotDict.get(PDFName.of('DA'));
+        const drRaw = annotDict.get(PDFName.of('DR'));
+        if (daRaw && drRaw) {
+          try {
+            const daStr = daRaw.toString?.() || '';
+            // Get font reference name from DA string, e.g. "/Helv 12 Tf" → "Helv"
+            const daFontMatch = daStr.match(/\/([^\s)]+)\s+[\d.]+\s+Tf/);
+            if (daFontMatch) {
+              const fontRef = daFontMatch[1];
+              const dr = context.lookup(drRaw);
+              if (dr) {
+                const fontDictRaw = dr.get(PDFName.of('Font'));
+                if (fontDictRaw) {
+                  const fontDict = context.lookup(fontDictRaw);
+                  if (fontDict) {
+                    const fontObjRaw = fontDict.get(PDFName.of(fontRef));
+                    if (fontObjRaw) {
+                      const fontObj = context.lookup(fontObjRaw);
+                      if (fontObj) {
+                        const baseFont = fontObj.get(PDFName.of('BaseFont'));
+                        if (baseFont) {
+                          const fontInfo = mapPdfFontName(baseFont.toString());
+                          if (fontInfo) {
+                            colors.fontFamily = fontInfo.family;
+                            if (fontInfo.bold) colors.fontBold = true;
+                            if (fontInfo.italic) colors.fontItalic = true;
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } catch (e) { /* ignore font extraction errors */ }
+        }
+
+        // Extract text styles from /RC (Rich Content) XHTML string
+        const rcRaw = annotDict.get(PDFName.of('RC'));
+        if (rcRaw) {
+          try {
+            const rcStr = rcRaw.toString?.() || '';
+            if (rcStr) {
+              // Check for text-decoration in style attributes
+              const decoMatch = rcStr.match(/text-decoration\s*:\s*([^;"']+)/i);
+              if (decoMatch) {
+                const deco = decoMatch[1].toLowerCase();
+                if (deco.includes('underline')) colors.fontUnderline = true;
+                if (deco.includes('line-through')) colors.fontStrikethrough = true;
+              }
+              // Also check for bold/italic in RC if not already detected from font name
+              if (!colors.fontBold) {
+                const weightMatch = rcStr.match(/font-weight\s*:\s*([^;"']+)/i);
+                if (weightMatch && /bold|[7-9]00/i.test(weightMatch[1])) {
+                  colors.fontBold = true;
+                }
+              }
+              if (!colors.fontItalic) {
+                const styleMatch = rcStr.match(/font-style\s*:\s*([^;"']+)/i);
+                if (styleMatch && /italic|oblique/i.test(styleMatch[1])) {
+                  colors.fontItalic = true;
+                }
+              }
+            }
+          } catch (e) { /* ignore RC parsing errors */ }
+        }
+
+        const apRaw = annotDict.get(PDFName.of('AP'));
+        if (apRaw) {
+          const ap = context.lookup(apRaw);
+          if (ap) {
+            const nRaw = ap.get(PDFName.of('N'));
+            if (nRaw) {
+              const nStream = context.lookup(nRaw);
+              if (nStream) {
+                const nDict = nStream.dict || nStream;
+
+                // Extract rotation from /Matrix [a, b, c, d, e, f]
+                // The Matrix maps form BBox to annotation Rect (includes page rotation)
+                const matrixRaw = nDict.get(PDFName.of('Matrix'));
+                if (matrixRaw) {
+                  const matrix = context.lookup(matrixRaw) || matrixRaw;
+                  if (matrix && typeof matrix.size === 'function' && matrix.size() >= 4) {
+                    const a = pdfNum(matrix.get(0));
+                    const b = pdfNum(matrix.get(1));
+                    if (a !== null && b !== null) {
+                      colors.matrixAngle = Math.round(Math.atan2(b, a) * 180 / Math.PI * 100) / 100;
+                    }
+                  }
+                }
+
+                // Extract font from AP/N Resources → Font → BaseFont (fallback when /DR is missing)
+                if (!colors.fontFamily) {
+                  try {
+                    const resRaw = nDict.get(PDFName.of('Resources'));
+                    if (resRaw) {
+                      const res = context.lookup(resRaw);
+                      if (res) {
+                        const apFontDictRaw = res.get(PDFName.of('Font'));
+                        if (apFontDictRaw) {
+                          const apFontDict = context.lookup(apFontDictRaw);
+                          if (apFontDict) {
+                            // Get the font reference name from DA string
+                            const daRawForAP = annotDict.get(PDFName.of('DA'));
+                            const daStrForAP = daRawForAP?.toString?.() || '';
+                            const daFontRef = daStrForAP.match(/\/([^\s)]+)\s+[\d.]+\s+Tf/);
+                            const refName = daFontRef ? daFontRef[1] : null;
+
+                            // Try specific font ref first, then iterate all fonts
+                            const fontKeysToTry = refName ? [refName] : [];
+                            if (apFontDict.entries) {
+                              for (const [key] of apFontDict.entries()) {
+                                const k = key.toString().replace(/^\//, '');
+                                if (k !== refName) fontKeysToTry.push(k);
+                              }
+                            }
+
+                            for (const fk of fontKeysToTry) {
+                              const fObjRaw = apFontDict.get(PDFName.of(fk));
+                              if (fObjRaw) {
+                                const fObj = context.lookup(fObjRaw);
+                                if (fObj) {
+                                  const bf = fObj.get(PDFName.of('BaseFont'));
+                                  if (bf) {
+                                    const fontInfo = mapPdfFontName(bf.toString());
+                                    if (fontInfo) {
+                                      colors.fontFamily = fontInfo.family;
+                                      if (fontInfo.bold) colors.fontBold = true;
+                                      if (fontInfo.italic) colors.fontItalic = true;
+                                      break;
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  } catch (e) { /* ignore AP font extraction errors */ }
+                }
+
+                // Extract BBox - original unrotated dimensions of the textbox
+                const bboxRaw = nDict.get(PDFName.of('BBox'));
+                if (bboxRaw) {
+                  const bbox = context.lookup(bboxRaw) || bboxRaw;
+                  if (bbox && typeof bbox.size === 'function' && bbox.size() >= 4) {
+                    colors.bboxWidth = Math.abs(pdfNum(bbox.get(2)) - pdfNum(bbox.get(0)));
+                    colors.bboxHeight = Math.abs(pdfNum(bbox.get(3)) - pdfNum(bbox.get(1)));
+                  }
+                }
+
+                // Extract stroke color from content stream
+                if (!colors.ic) {
+                  let streamBytes;
+                  if (typeof nStream.getContents === 'function') {
+                    streamBytes = nStream.getContents();
+                  } else if (typeof nStream.contents === 'function') {
+                    streamBytes = nStream.contents();
+                  } else if (nStream.contentsCache?.value) {
+                    streamBytes = nStream.contentsCache.value;
+                  }
+                  if (streamBytes) {
+                    let content;
+                    const filterRaw = nDict.get(PDFName.of('Filter'));
+                    const filterName = filterRaw?.toString();
+                    if (filterName === '/FlateDecode') {
+                      const decompressed = await inflateBytes(streamBytes);
+                      if (decompressed) content = new TextDecoder().decode(decompressed);
+                    } else {
+                      content = new TextDecoder().decode(streamBytes);
+                    }
+                    if (content) {
+                      const rgMatch = content.match(/([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+RG/);
+                      if (rgMatch) {
+                        const r = parseFloat(rgMatch[1]), g = parseFloat(rgMatch[2]), b = parseFloat(rgMatch[3]);
+                        colors.apStrokeColor = `#${Math.round(r * 255).toString(16).padStart(2, '0')}${Math.round(g * 255).toString(16).padStart(2, '0')}${Math.round(b * 255).toString(16).padStart(2, '0')}`;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (colors.ic || colors.apStrokeColor || colors.lineCoords || colors.opacity !== undefined ||
+          colors.matrixAngle !== undefined || colors.bboxWidth ||
+          colors.fontFamily || colors.fontBold || colors.fontItalic ||
+          colors.fontUnderline || colors.fontStrikethrough || colors.borderWidth !== undefined) {
+        colorMap.set(key, colors);
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to extract annotation colors:', e);
+  }
+  return colorMap;
+}
+
+// Extract stamp images from PDF using pdf-lib
+async function extractStampImages(pageNum, pdfDoc) {
+  const imageMap = new Map();
+
+  try {
+    const page = pdfDoc.getPages()[pageNum - 1];
+    if (!page) return imageMap;
+
+    const context = pdfDoc.context;
+    const annotsRaw = page.node.get(PDFName.of('Annots'));
+    if (!annotsRaw) return imageMap;
+    const annots = context.lookup(annotsRaw);
+    if (!annots) return imageMap;
+
+    for (let i = 0; i < annots.size(); i++) {
+      const annotDict = context.lookup(annots.get(i));
+      if (!annotDict) continue;
+
+      const subtype = annotDict.get(PDFName.of('Subtype'));
+      if (!subtype || subtype.toString() !== '/Stamp') continue;
+
+      // Get appearance: /AP -> /N
+      const apRaw = annotDict.get(PDFName.of('AP'));
+      if (!apRaw) { console.warn('Stamp has no /AP'); continue; }
+      const apDict = context.lookup(apRaw);
+      if (!apDict) continue;
+
+      const normalRaw = apDict.get(PDFName.of('N'));
+      if (!normalRaw) { console.warn('Stamp has no /AP/N'); continue; }
+      const normalStream = context.lookup(normalRaw);
+      if (!normalStream) continue;
+
+      // Extract image from the Form XObject
+      const dataUrl = await extractImageFromFormXObject(context, normalStream);
+      if (dataUrl) {
+        // Build rect key for matching with pdf.js annotations
+        const rectArr = annotDict.get(PDFName.of('Rect'));
+        if (rectArr) {
+          const r0 = pdfNum(context.lookup(rectArr.get(0)) || rectArr.get(0));
+          const r1 = pdfNum(context.lookup(rectArr.get(1)) || rectArr.get(1));
+          const r2 = pdfNum(context.lookup(rectArr.get(2)) || rectArr.get(2));
+          const r3 = pdfNum(context.lookup(rectArr.get(3)) || rectArr.get(3));
+          imageMap.set(`${r0},${r1},${r2},${r3}`, dataUrl);
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to extract stamp images:', e);
+  }
+
+  return imageMap;
+}
+
+// Extract the first image from a Form XObject's resources
+async function extractImageFromFormXObject(context, formStream) {
+  try {
+    const dict = formStream.dict || formStream;
+
+    // Check if this IS an image directly
+    const subtype = dict.get(PDFName.of('Subtype'));
+    if (subtype && subtype.toString() === '/Image') {
+      return await decodeImageStream(context, formStream);
+    }
+
+    // It's a Form XObject - dig into Resources/XObject to find images
+    const resRaw = dict.get(PDFName.of('Resources'));
+    if (!resRaw) { console.warn('Form XObject has no /Resources'); return null; }
+    const resDict = context.lookup(resRaw);
+    if (!resDict) return null;
+
+    const xobjRaw = resDict.get(PDFName.of('XObject'));
+    if (!xobjRaw) { console.warn('Resources has no /XObject'); return null; }
+    const xobjDict = context.lookup(xobjRaw);
+    if (!xobjDict) return null;
+
+    // Iterate XObject entries looking for images
+    const entries = xobjDict.entries();
+    for (const [name, ref] of entries) {
+      const obj = context.lookup(ref);
+      if (!obj) continue;
+      const innerDict = obj.dict || obj;
+      const innerSubtype = innerDict.get(PDFName.of('Subtype'));
+      if (innerSubtype && innerSubtype.toString() === '/Image') {
+        const result = await decodeImageStream(context, obj);
+        if (result) return result;
+      }
+      // Could be a nested Form XObject containing an image
+      if (innerSubtype && innerSubtype.toString() === '/Form') {
+        const result = await extractImageFromFormXObject(context, obj);
+        if (result) return result;
+      }
+    }
+  } catch (e) {
+    console.warn('extractImageFromFormXObject error:', e);
+  }
+  return null;
+}
+
+// Decode an image stream to a data URL
+async function decodeImageStream(context, streamObj) {
+  try {
+    const dict = streamObj.dict || streamObj;
+    const width = pdfNum(dict.get(PDFName.of('Width')));
+    const height = pdfNum(dict.get(PDFName.of('Height')));
+    if (!width || !height) { console.warn('Image has no width/height', width, height); return null; }
+
+    // Get filter
+    let filterRaw = dict.get(PDFName.of('Filter'));
+    if (filterRaw) filterRaw = context.lookup(filterRaw) || filterRaw;
+    let filter = '';
+    if (filterRaw) {
+      // Filter could be a name or an array of names
+      if (typeof filterRaw.toString === 'function') {
+        const s = filterRaw.toString();
+        if (s.startsWith('/')) {
+          filter = s;
+        } else if (s.startsWith('[')) {
+          // Array of filters - get the last one (innermost encoding)
+          const match = s.match(/\/(\w+)/g);
+          if (match && match.length > 0) filter = match[match.length - 1];
+        }
+      }
+    }
+
+    // Get raw stream bytes
+    const rawBytes = streamObj.contents;
+    if (!rawBytes || rawBytes.length === 0) { console.warn('Image stream is empty'); return null; }
+
+    // Check for SMask (transparency mask)
+    const sMaskRef = dict.get(PDFName.of('SMask'));
+    let sMaskBytes = null;
+    if (sMaskRef) {
+      try {
+        const sMaskStream = context.lookup(sMaskRef);
+        if (sMaskStream && sMaskStream.contents) {
+          sMaskBytes = sMaskStream.contents;
+          const sMaskFilter = sMaskStream.dict?.get(PDFName.of('Filter'))?.toString();
+          if (sMaskFilter === '/FlateDecode') {
+            sMaskBytes = await inflateBytes(sMaskBytes) || sMaskBytes;
+          }
+        }
+      } catch (e) { /* ignore smask errors */ }
+    }
+
+    // JPEG - decode to canvas so we can apply SMask transparency
+    if (filter === '/DCTDecode') {
+      const blob = new Blob([rawBytes], { type: 'image/jpeg' });
+      const jpegUrl = await blobToDataUrl(blob);
+
+      // If no SMask, just return the JPEG directly
+      if (!sMaskBytes) return jpegUrl;
+
+      // Apply SMask: load JPEG onto canvas, then set alpha from SMask
+      const jpegImg = await loadImage(jpegUrl);
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(jpegImg, 0, 0, width, height);
+      const imgData = ctx.getImageData(0, 0, width, height);
+      const px = imgData.data;
+      for (let i = 0, j = 3; i < sMaskBytes.length && j < px.length; i++, j += 4) {
+        px[j] = sMaskBytes[i];
+      }
+      ctx.putImageData(imgData, 0, 0);
+      return canvas.toDataURL('image/png');
+    }
+
+    // JPEG2000
+    if (filter === '/JPXDecode') {
+      const blob = new Blob([rawBytes], { type: 'image/jp2' });
+      if (!sMaskBytes) return await blobToDataUrl(blob);
+
+      const jp2Url = await blobToDataUrl(blob);
+      const jp2Img = await loadImage(jp2Url);
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(jp2Img, 0, 0, width, height);
+      const imgData = ctx.getImageData(0, 0, width, height);
+      const px = imgData.data;
+      for (let i = 0, j = 3; i < sMaskBytes.length && j < px.length; i++, j += 4) {
+        px[j] = sMaskBytes[i];
+      }
+      ctx.putImageData(imgData, 0, 0);
+      return canvas.toDataURL('image/png');
+    }
+
+    // FlateDecode - decompress then decode pixels
+    let imageBytes = rawBytes;
+    if (filter === '/FlateDecode') {
+      const decompressed = await inflateBytes(rawBytes);
+      if (!decompressed) { console.warn('Failed to decompress FlateDecode stream'); return null; }
+      imageBytes = decompressed;
+    }
+
+    // Get color space
+    let colorSpace = '';
+    const csRaw = dict.get(PDFName.of('ColorSpace'));
+    if (csRaw) {
+      const cs = context.lookup(csRaw) || csRaw;
+      colorSpace = cs.toString();
+    }
+
+    // Decode raw pixels to canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.createImageData(width, height);
+    const px = imgData.data;
+
+    if (colorSpace.includes('DeviceGray') || colorSpace.includes('CalGray')) {
+      for (let i = 0, j = 0; i < imageBytes.length && j < px.length; i++, j += 4) {
+        px[j] = px[j+1] = px[j+2] = imageBytes[i];
+        px[j+3] = 255;
+      }
+    } else if (colorSpace.includes('CMYK')) {
+      for (let i = 0, j = 0; i < imageBytes.length - 3 && j < px.length; i += 4, j += 4) {
+        const c = imageBytes[i]/255, m = imageBytes[i+1]/255, y = imageBytes[i+2]/255, k = imageBytes[i+3]/255;
+        px[j] = 255*(1-c)*(1-k); px[j+1] = 255*(1-m)*(1-k); px[j+2] = 255*(1-y)*(1-k); px[j+3] = 255;
+      }
+    } else {
+      // Default: RGB
+      for (let i = 0, j = 0; i < imageBytes.length - 2 && j < px.length; i += 3, j += 4) {
+        px[j] = imageBytes[i]; px[j+1] = imageBytes[i+1]; px[j+2] = imageBytes[i+2]; px[j+3] = 255;
+      }
+    }
+
+    // Apply SMask (transparency) if present
+    if (sMaskBytes) {
+      for (let i = 0, j = 3; i < sMaskBytes.length && j < px.length; i++, j += 4) {
+        px[j] = sMaskBytes[i];
+      }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    return canvas.toDataURL('image/png');
+  } catch (e) {
+    console.warn('decodeImageStream error:', e);
+    return null;
+  }
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 // Convert PDF annotation to our format
-function convertPdfAnnotation(annot, pageNum, viewport) {
+async function convertPdfAnnotation(annot, pageNum, viewport, stampImageMap, annotColorMap) {
   const pageHeight = viewport.height;
 
   // Helper to convert Y coordinate
@@ -170,17 +880,21 @@ function convertPdfAnnotation(annot, pageNum, viewport) {
   const rect = annot.rect;
   if (!rect || rect.length < 4) return null;
 
+  // Look up extra colors extracted via pdf-lib (IC entry, appearance stream colors)
+  const rectKey = `${rect[0]},${rect[1]},${rect[2]},${rect[3]}`;
+  const extraColors = annotColorMap?.get(rectKey) || {};
+
   const baseProps = {
     page: pageNum,
     author: annot.title || 'User',
     subject: annot.subject || '',
     createdAt: parsePdfDate(annot.creationDate),
     modifiedAt: parsePdfDate(annot.modificationDate),
-    opacity: annot.opacity !== undefined ? annot.opacity : 1.0,
-    locked: annot.isLocked || false,
-    printable: annot.isPrintable !== false,
-    readOnly: annot.readOnly || false,
-    marked: annot.isMarked || false
+    opacity: annot.opacity !== undefined ? annot.opacity : (extraColors.opacity !== undefined ? extraColors.opacity : 1.0),
+    locked: !!(annot.annotationFlags & 128),      // Bit 8: Locked
+    printable: !!(annot.annotationFlags & 4),       // Bit 3: Print
+    readOnly: !!(annot.annotationFlags & 64),       // Bit 7: ReadOnly
+    marked: false
   };
 
   switch (annot.subtype) {
@@ -248,9 +962,9 @@ function convertPdfAnnotation(annot, pageNum, viewport) {
         height: rect[3] - rect[1],
         color: colorArrayToHex(annot.color, '#000000'),
         strokeColor: colorArrayToHex(annot.color, '#000000'),
-        fillColor: annot.interiorColor ? colorArrayToHex(annot.interiorColor) : null,
+        fillColor: extraColors.ic || null,
         lineWidth: annot.borderStyle?.width || 2,
-        borderStyle: annot.borderStyle?.style === 1 ? 'dashed' : 'solid'
+        borderStyle: mapBorderStyle(annot)
       });
 
     case 'Circle':
@@ -263,9 +977,9 @@ function convertPdfAnnotation(annot, pageNum, viewport) {
         height: rect[3] - rect[1],
         color: colorArrayToHex(annot.color, '#000000'),
         strokeColor: colorArrayToHex(annot.color, '#000000'),
-        fillColor: annot.interiorColor ? colorArrayToHex(annot.interiorColor) : null,
+        fillColor: extraColors.ic || null,
         lineWidth: annot.borderStyle?.width || 2,
-        borderStyle: annot.borderStyle?.style === 1 ? 'dashed' : 'solid'
+        borderStyle: mapBorderStyle(annot)
       });
 
     case 'Line':
@@ -287,20 +1001,22 @@ function convertPdfAnnotation(annot, pageNum, viewport) {
         const startHead = mapPdfHead(le[0]);
         const endHead = mapPdfHead(le[1]);
         const isArrow = startHead !== 'none' || endHead !== 'none';
-        const borderStyle = annot.borderStyle?.style === 1 ? 'dashed' : 'solid';
+
+        // Use original /L coords from pdf-lib (PDF.js normalizeRect destroys direction)
+        const lc = extraColors.lineCoords || annot.lineCoordinates;
 
         return createAnnotation({
           ...baseProps,
           type: isArrow ? 'arrow' : 'line',
-          startX: annot.lineCoordinates[0],
-          startY: convertY(annot.lineCoordinates[1]),
-          endX: annot.lineCoordinates[2],
-          endY: convertY(annot.lineCoordinates[3]),
+          startX: lc[0],
+          startY: convertY(lc[1]),
+          endX: lc[2],
+          endY: convertY(lc[3]),
           color: colorArrayToHex(annot.color, '#000000'),
           strokeColor: colorArrayToHex(annot.color, '#000000'),
-          fillColor: annot.interiorColor ? colorArrayToHex(annot.interiorColor) : undefined,
+          fillColor: extraColors.ic || undefined,
           lineWidth: annot.borderStyle?.width || 2,
-          borderStyle: borderStyle,
+          borderStyle: mapBorderStyle(annot),
           startHead: startHead,
           endHead: endHead,
           headSize: 12
@@ -325,7 +1041,8 @@ function convertPdfAnnotation(annot, pageNum, viewport) {
           path: path,
           color: colorArrayToHex(annot.color, '#000000'),
           strokeColor: colorArrayToHex(annot.color, '#000000'),
-          lineWidth: annot.borderStyle?.width || 2
+          lineWidth: annot.borderStyle?.width || 2,
+          borderStyle: mapBorderStyle(annot)
         });
       }
       break;
@@ -345,7 +1062,8 @@ function convertPdfAnnotation(annot, pageNum, viewport) {
           points: points,
           color: colorArrayToHex(annot.color, '#000000'),
           strokeColor: colorArrayToHex(annot.color, '#000000'),
-          lineWidth: annot.borderStyle?.width || 2
+          lineWidth: annot.borderStyle?.width || 2,
+          borderStyle: mapBorderStyle(annot)
         });
       }
       break;
@@ -370,8 +1088,9 @@ function convertPdfAnnotation(annot, pageNum, viewport) {
           sides: Math.floor(annot.vertices.length / 2),
           color: colorArrayToHex(annot.color, '#000000'),
           strokeColor: colorArrayToHex(annot.color, '#000000'),
-          fillColor: annot.interiorColor ? colorArrayToHex(annot.interiorColor) : null,
-          lineWidth: annot.borderStyle?.width || 2
+          fillColor: extraColors.ic || null,
+          lineWidth: annot.borderStyle?.width || 2,
+          borderStyle: mapBorderStyle(annot)
         });
       }
       break;
@@ -392,44 +1111,133 @@ function convertPdfAnnotation(annot, pageNum, viewport) {
       });
 
     case 'FreeText': {
-      // Extract font size and text color from DA string
+      // Extract font size, font family, bold/italic, and text color
       let fontSize = 14;
       let textColor = '#000000';
+      let fontFamily = null;
+      let fontBold = false;
+      let fontItalic = false;
+
       if (annot.defaultAppearanceData) {
         if (annot.defaultAppearanceData.fontSize) fontSize = annot.defaultAppearanceData.fontSize;
         if (annot.defaultAppearanceData.fontColor) {
-          const fc = annot.defaultAppearanceData.fontColor;
-          if (fc.length === 3) textColor = colorArrayToHex(fc, '#000000');
+          textColor = colorArrayToHex(annot.defaultAppearanceData.fontColor, '#000000');
         }
-      } else if (annot.defaultAppearance) {
-        // Parse DA string: "r g b rg /Font size Tf"
-        const sizeMatch = annot.defaultAppearance.match(/(\d+(?:\.\d+)?)\s+Tf/);
-        if (sizeMatch) fontSize = parseFloat(sizeMatch[1]);
-        const colorMatch = annot.defaultAppearance.match(/([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+rg/);
-        if (colorMatch) {
-          textColor = colorArrayToHex([parseFloat(colorMatch[1]), parseFloat(colorMatch[2]), parseFloat(colorMatch[3])], '#000000');
+        if (annot.defaultAppearanceData.fontName) {
+          const fontInfo = mapPdfFontName(annot.defaultAppearanceData.fontName);
+          if (fontInfo) {
+            fontFamily = fontInfo.family;
+            if (fontInfo.bold) fontBold = true;
+            if (fontInfo.italic) fontItalic = true;
+          }
         }
       }
+      if (!fontFamily && annot.defaultAppearance) {
+        // Parse DA string "/FontRef size Tf"
+        const fontMatch = annot.defaultAppearance.match(/\/([^\s]+)\s+[\d.]+\s+Tf/);
+        if (fontMatch) {
+          const fontInfo = mapPdfFontName(fontMatch[1]);
+          if (fontInfo) {
+            fontFamily = fontInfo.family;
+            if (fontInfo.bold) fontBold = true;
+            if (fontInfo.italic) fontItalic = true;
+          }
+        }
+        if (!annot.defaultAppearanceData) {
+          const sizeMatch = annot.defaultAppearance.match(/(\d+(?:\.\d+)?)\s+Tf/);
+          if (sizeMatch) fontSize = parseFloat(sizeMatch[1]);
+          const colorMatch = annot.defaultAppearance.match(/([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+rg/);
+          if (colorMatch) {
+            textColor = colorArrayToHex([parseFloat(colorMatch[1]), parseFloat(colorMatch[2]), parseFloat(colorMatch[3])], '#000000');
+          }
+        }
+      }
+      // Use font info from pdf-lib if available (more accurate - resolves reference names like "F8")
+      if (extraColors.fontFamily) fontFamily = extraColors.fontFamily;
+      if (extraColors.fontBold) fontBold = true;
+      if (extraColors.fontItalic) fontItalic = true;
+      let fontUnderline = extraColors.fontUnderline || false;
+      let fontStrikethrough = extraColors.fontStrikethrough || false;
+
+      // Text content: prefer textContent array (joined), fallback to contents
+      const text = annot.textContent ? annot.textContent.join('\n') : (annot.contents || '');
+
+      // For FreeText annotations, annot.color (C entry) is the background/fill color per PDF spec
+      // Border color: IC entry or appearance stream stroke color (extracted via pdf-lib)
+      let borderColor = extraColors.ic || extraColors.apStrokeColor || '#000000';
+      if (borderColor === '#000000' && annot.borderColor) {
+        borderColor = colorArrayToHex(annot.borderColor, '#000000');
+      }
+
+      // Fill/background color: annot.color (C entry) for FreeText, fallback to backgroundColor (MK/BG)
+      const bgColor = annot.color
+        ? colorArrayToHex(annot.color)
+        : (annot.backgroundColor ? colorArrayToHex(annot.backgroundColor) : null);
+
+      // Border style: 1=SOLID, 2=DASHED, 3=BEVELED, 4=INSET, 5=UNDERLINE
+      const bsStyle = annot.borderStyle?.style;
+      const borderStyle = bsStyle === 2 ? 'dashed' : (bsStyle === 3 || bsStyle === 4 ? 'dotted' : 'solid');
+      const borderWidth = extraColors.borderWidth !== undefined ? extraColors.borderWidth : (annot.borderStyle?.width || 1);
+
+      // Derive rotation from AP/N Matrix angle
+      // The Matrix encodes base rotation (page/BBox-to-Rect mapping) + textbox rotation
+      // Round to nearest 90° to find the base, remainder is the actual textbox rotation
+      let ftRotation = 0;
+      if (extraColors.matrixAngle !== undefined) {
+        const ma = extraColors.matrixAngle;
+        const baseAngle = Math.round(ma / 90) * 90;
+        ftRotation = -(ma - baseAngle);
+        // Round to nearest integer degree and snap near-zero to 0
+        ftRotation = Math.round(ftRotation);
+        if (Math.abs(ftRotation) <= 1) ftRotation = 0;
+      }
+
+      // When rotated, the Rect is the bounding box of the rotated textbox (larger)
+      // Use the BBox from AP/N stream for actual dimensions, fallback to Rect
+      const rectW = rect[2] - rect[0];
+      const rectH = rect[3] - rect[1];
+      let ftWidth, ftHeight;
+      if (ftRotation !== 0 && extraColors.bboxWidth && extraColors.bboxHeight) {
+        // BBox is in form-internal coordinates which may be rotated relative to page
+        // If the base Matrix angle is near ±90°, width and height are swapped
+        const baseAngle = extraColors.matrixAngle !== undefined ? Math.round(extraColors.matrixAngle / 90) * 90 : 0;
+        const swapped = (Math.abs(baseAngle) === 90 || Math.abs(baseAngle) === 270);
+        ftWidth = swapped ? extraColors.bboxHeight : extraColors.bboxWidth;
+        ftHeight = swapped ? extraColors.bboxWidth : extraColors.bboxHeight;
+      } else {
+        ftWidth = rectW;
+        ftHeight = rectH;
+      }
+      // Position: center of the Rect (bounding box center = rotated textbox center)
+      const cx = rect[0] + rectW / 2;
+      const cy = convertY(rect[3]) + rectH / 2;
+      const ftX = cx - ftWidth / 2;
+      const ftY = cy - ftHeight / 2;
 
       const isCallout = annot.calloutLine && annot.calloutLine.length >= 4;
-      const borderStyle = annot.borderStyle?.style === 1 ? 'dashed' : 'solid';
 
       if (isCallout) {
         return createAnnotation({
           ...baseProps,
           type: 'callout',
-          x: rect[0],
-          y: convertY(rect[3]),
-          width: rect[2] - rect[0],
-          height: rect[3] - rect[1],
-          text: annot.contents || '',
-          color: colorArrayToHex(annot.color, '#000000'),
-          strokeColor: colorArrayToHex(annot.color, '#000000'),
-          fillColor: annot.interiorColor ? colorArrayToHex(annot.interiorColor) : '#FFFFD0',
+          x: ftX,
+          y: ftY,
+          width: ftWidth,
+          height: ftHeight,
+          rotation: ftRotation,
+          text: text,
+          color: borderColor,
+          strokeColor: borderColor,
+          fillColor: bgColor || '#FFFFD0',
           textColor: textColor,
           fontSize: fontSize,
           borderStyle: borderStyle,
-          lineWidth: annot.borderStyle?.width || 1,
+          lineWidth: borderWidth,
+          fontFamily: fontFamily || 'Arial',
+          fontBold: fontBold,
+          fontItalic: fontItalic,
+          fontUnderline: fontUnderline,
+          fontStrikethrough: fontStrikethrough,
           arrowX: annot.calloutLine[0],
           arrowY: convertY(annot.calloutLine[1]),
           kneeX: annot.calloutLine.length >= 6 ? annot.calloutLine[2] : annot.calloutLine[0],
@@ -440,40 +1248,75 @@ function convertPdfAnnotation(annot, pageNum, viewport) {
       return createAnnotation({
         ...baseProps,
         type: 'textbox',
-        x: rect[0],
-        y: convertY(rect[3]),
-        width: rect[2] - rect[0],
-        height: rect[3] - rect[1],
-        text: annot.contents || '',
-        color: colorArrayToHex(annot.color, '#000000'),
-        strokeColor: colorArrayToHex(annot.color, '#000000'),
-        fillColor: annot.interiorColor ? colorArrayToHex(annot.interiorColor) : '#FFFFD0',
+        x: ftX,
+        y: ftY,
+        width: ftWidth,
+        height: ftHeight,
+        rotation: ftRotation,
+        text: text,
+        color: borderColor,
+        strokeColor: borderColor,
+        fillColor: bgColor,
         textColor: textColor,
         fontSize: fontSize,
         borderStyle: borderStyle,
-        lineWidth: annot.borderStyle?.width || 1
+        lineWidth: borderWidth,
+        fontFamily: fontFamily || 'Arial',
+        fontBold: fontBold,
+        fontItalic: fontItalic,
+        fontUnderline: fontUnderline,
+        fontStrikethrough: fontStrikethrough
       });
     }
 
-    case 'Stamp':
-      // Image stamp - if we have appearance data
-      if (annot.appearance) {
+    case 'Stamp': {
+      // Image stamp - extracted from PDF structure via pdf-lib
+      const x = rect[0];
+      const y = convertY(rect[3]);
+      const w = rect[2] - rect[0];
+      const h = rect[3] - rect[1];
+
+      // Find matching stamp image by rect
+      let dataUrl = null;
+      if (stampImageMap) {
+        // Try exact match first
+        const key = `${rect[0]},${rect[1]},${rect[2]},${rect[3]}`;
+        dataUrl = stampImageMap.get(key);
+        // Fuzzy match fallback
+        if (!dataUrl) {
+          for (const [k, v] of stampImageMap.entries()) {
+            const parts = k.split(',').map(Number);
+            if (Math.abs(parts[0] - rect[0]) < 1 && Math.abs(parts[1] - rect[1]) < 1 &&
+                Math.abs(parts[2] - rect[2]) < 1 && Math.abs(parts[3] - rect[3]) < 1) {
+              dataUrl = v;
+              break;
+            }
+          }
+        }
+      }
+
+      if (dataUrl) {
         const imageId = generateImageId();
-        // For now, create a placeholder - full image extraction would require more work
+        const img = new Image();
+        img.src = dataUrl;
+        state.imageCache.set(imageId, img);
+
         return createAnnotation({
           ...baseProps,
           type: 'image',
-          x: rect[0],
-          y: convertY(rect[3]),
-          width: rect[2] - rect[0],
-          height: rect[3] - rect[1],
+          x: x,
+          y: y,
+          width: w,
+          height: h,
           imageId: imageId,
-          originalWidth: rect[2] - rect[0],
-          originalHeight: rect[3] - rect[1],
+          imageData: dataUrl,
+          originalWidth: w,
+          originalHeight: h,
           rotation: 0
         });
       }
       break;
+    }
   }
 
   return null;

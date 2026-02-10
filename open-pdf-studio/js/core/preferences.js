@@ -1,7 +1,7 @@
 import { DEFAULT_PREFERENCES } from './constants.js';
 import { state } from './state.js';
 import { colorPicker, lineWidth } from '../ui/dom-elements.js';
-import { updateStatusMessage } from '../ui/status-bar.js';
+import { updateStatusMessage } from '../ui/chrome/status-bar.js';
 
 // Load preferences from localStorage
 export function loadPreferences() {

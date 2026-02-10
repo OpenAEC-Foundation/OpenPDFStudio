@@ -1,5 +1,5 @@
 import { state } from '../core/state.js';
-import { showTextSelectionContextMenu } from '../ui/context-menus.js';
+import { showTextSelectionContextMenu } from '../ui/chrome/context-menus.js';
 
 /**
  * Text Selection Module

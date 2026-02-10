@@ -2,8 +2,8 @@ import { state } from '../core/state.js';
 import { createAnnotation, cloneAnnotation } from './factory.js';
 import { recordBulkAdd } from '../core/undo-manager.js';
 import { redrawAnnotations, redrawContinuous } from './rendering.js';
-import { updateStatusMessage } from '../ui/status-bar.js';
-import { isTauri, readBinaryFile, writeBinaryFile, saveFileDialog, openFileDialog } from '../tauri-api.js';
+import { updateStatusMessage } from '../ui/chrome/status-bar.js';
+import { isTauri, readBinaryFile, writeBinaryFile, saveFileDialog, openFileDialog } from '../core/platform.js';
 
 // Export annotations to XFDF XML format
 export function exportToXFDF() {

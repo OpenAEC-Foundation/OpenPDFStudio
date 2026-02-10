@@ -1355,7 +1355,18 @@
 
         <div class="property-group" id="prop-line-width-group">
           <label>Line Width</label>
-          <input type="number" id="prop-line-width" min="1" max="20">
+          <select id="prop-line-width" class="ribbon-input">
+            <option value="0">0</option>
+            <option value="0.5">0.5</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="6">6</option>
+            <option value="8">8</option>
+            <option value="10">10</option>
+            <option value="12">12</option>
+          </select>
         </div>
 
         <div class="property-group" id="prop-border-style-group" style="display: none;">
@@ -1452,15 +1463,6 @@
           <label>Font</label>
           <select id="prop-font-family">
             <option value="Arial">Arial</option>
-            <option value="Helvetica">Helvetica</option>
-            <option value="Times New Roman">Times New Roman</option>
-            <option value="Georgia">Georgia</option>
-            <option value="Courier New">Courier New</option>
-            <option value="Verdana">Verdana</option>
-            <option value="Tahoma">Tahoma</option>
-            <option value="Trebuchet MS">Trebuchet MS</option>
-            <option value="Impact">Impact</option>
-            <option value="Comic Sans MS">Comic Sans MS</option>
           </select>
         </div>
 
@@ -2630,15 +2632,6 @@
           <div class="text-annot-toolbar-group">
             <select id="text-annot-font-family" title="Font Family">
               <option value="Arial">Arial</option>
-              <option value="Helvetica">Helvetica</option>
-              <option value="Times New Roman">Times New Roman</option>
-              <option value="Courier New">Courier New</option>
-              <option value="Georgia">Georgia</option>
-              <option value="Verdana">Verdana</option>
-              <option value="Tahoma">Tahoma</option>
-              <option value="Trebuchet MS">Trebuchet MS</option>
-              <option value="Calibri">Calibri</option>
-              <option value="Segoe UI">Segoe UI</option>
             </select>
             <select id="text-annot-font-size" title="Font Size">
               <option value="8">8</option>

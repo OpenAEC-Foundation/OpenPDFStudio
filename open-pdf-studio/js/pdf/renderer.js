@@ -4,10 +4,10 @@ import {
   pageInfo, pageInput, pageTotal, prevPageBtn, nextPageBtn, zoomLevel
 } from '../ui/dom-elements.js';
 import { redrawAnnotations, renderAnnotationsForPage } from '../annotations/rendering.js';
-import { updateAllStatus } from '../ui/status-bar.js';
-import { hideProperties } from '../ui/properties-panel.js';
+import { updateAllStatus } from '../ui/chrome/status-bar.js';
+import { hideProperties } from '../ui/panels/properties-panel.js';
 import { getCursorForTool } from '../tools/manager.js';
-import { updateActiveThumbnail } from '../ui/left-panel.js';
+import { updateActiveThumbnail } from '../ui/panels/left-panel.js';
 import { createSinglePageTextLayer, clearSinglePageTextLayer, createTextLayer, clearTextLayers } from '../text/text-layer.js';
 import { createSinglePageLinkLayer, clearSinglePageLinkLayer, createLinkLayer, clearLinkLayers } from './link-layer.js';
 
@@ -52,7 +52,8 @@ export async function renderPage(pageNum) {
   const ctx = pdfCanvas.getContext('2d');
   const renderContext = {
     canvasContext: ctx,
-    viewport: viewport
+    viewport: viewport,
+    annotationMode: 0 // DISABLE - annotations are rendered by the app's overlay canvas
   };
 
   currentRenderTask = page.render(renderContext);
@@ -164,7 +165,8 @@ export async function renderContinuous() {
     try {
       await page.render({
         canvasContext: pdfCtxEl,
-        viewport: viewport
+        viewport: viewport,
+        annotationMode: 0 // DISABLE - annotations are rendered by the app's overlay canvas
       }).promise;
     } catch (error) {
       console.error(`Error rendering page ${pageNum}:`, error);
@@ -207,7 +209,7 @@ export async function renderContinuous() {
 // Setup mouse events for continuous mode pages
 function setupContinuousPageEvents(canvas, pageNum) {
   // Import event handlers dynamically to avoid circular dependencies
-  import('../events/mouse-handlers.js').then(({ handleContinuousMouseDown, handleContinuousMouseMove, handleContinuousMouseUp }) => {
+  import('../tools/mouse-handlers.js').then(({ handleContinuousMouseDown, handleContinuousMouseMove, handleContinuousMouseUp }) => {
     canvas.addEventListener('mousedown', (e) => handleContinuousMouseDown(e, pageNum));
     canvas.addEventListener('mousemove', (e) => handleContinuousMouseMove(e, pageNum));
     canvas.addEventListener('mouseup', (e) => handleContinuousMouseUp(e, pageNum));
@@ -379,7 +381,7 @@ export async function rotatePage(delta) {
   }
 
   // Update thumbnails
-  const { invalidateThumbnail } = await import('../ui/left-panel.js');
+  const { invalidateThumbnail } = await import('../ui/panels/left-panel.js');
   invalidateThumbnail(pageNum);
 }
 

@@ -1,7 +1,7 @@
-import { getActiveDocument } from '../core/state.js';
-import { isTauri, writeBinaryFile, readBinaryFile } from '../tauri-api.js';
-import { PDFDocument, PDFName, PDFHexString, PDFDict, PDFArray, PDFString } from '../../node_modules/pdf-lib/dist/pdf-lib.esm.js';
-import { getCachedPdfBytes } from '../pdf/loader.js';
+import { getActiveDocument } from '../../core/state.js';
+import { isTauri, writeBinaryFile, readBinaryFile } from '../../core/platform.js';
+import { PDFDocument, PDFName, PDFHexString, PDFDict, PDFArray, PDFString } from '../../../node_modules/pdf-lib/dist/pdf-lib.esm.js';
+import { getCachedPdfBytes } from '../../pdf/loader.js';
 
 const attachmentsContainer = document.getElementById('attachments-container');
 const attachmentsCount = document.getElementById('attachments-count');

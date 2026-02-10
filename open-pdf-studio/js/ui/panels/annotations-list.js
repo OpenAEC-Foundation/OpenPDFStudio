@@ -1,8 +1,8 @@
-import { state, isSelected } from '../core/state.js';
-import { annotationsListPanel, annotationsListContent, annotationsListFilter, annotationsListCount } from './dom-elements.js';
-import { getTypeDisplayName, formatDate } from '../utils/helpers.js';
+import { state, isSelected } from '../../core/state.js';
+import { annotationsListPanel, annotationsListContent, annotationsListFilter, annotationsListCount } from '../dom-elements.js';
+import { getTypeDisplayName, formatDate } from '../../utils/helpers.js';
 import { showProperties } from './properties-panel.js';
-import { goToPage } from '../pdf/renderer.js';
+import { goToPage } from '../../pdf/renderer.js';
 import { switchLeftPanelTab } from './left-panel.js';
 
 // Toggle annotations list panel visibility

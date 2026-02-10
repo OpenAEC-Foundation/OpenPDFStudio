@@ -1,9 +1,9 @@
-import { state, createDocument, getActiveDocument, findDocumentByPath } from '../core/state.js';
-import { renderPage, renderContinuous, clearPdfView } from '../pdf/renderer.js';
-import { redrawAnnotations, redrawContinuous, updateQuickAccessButtons } from '../annotations/rendering.js';
-import { updateAllStatus } from '../ui/status-bar.js';
-import { generateThumbnails, clearThumbnails, clearThumbnailCache, refreshActiveTab } from '../ui/left-panel.js';
-import { openPDFFile } from '../pdf/loader.js';
+import { state, createDocument, getActiveDocument, findDocumentByPath } from '../../core/state.js';
+import { renderPage, renderContinuous, clearPdfView } from '../../pdf/renderer.js';
+import { redrawAnnotations, redrawContinuous, updateQuickAccessButtons } from '../../annotations/rendering.js';
+import { updateAllStatus } from './status-bar.js';
+import { generateThumbnails, clearThumbnails, clearThumbnailCache, refreshActiveTab } from '../panels/left-panel.js';
+import { openPDFFile } from '../../pdf/loader.js';
 
 const tabsContainer = document.getElementById('document-tabs');
 const noDocsMessage = document.getElementById('no-docs-message');

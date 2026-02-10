@@ -2,8 +2,8 @@ import { HANDLE_SIZE, HANDLE_TYPES } from '../core/constants.js';
 import { state, isSelected, getSelectionBounds, getAnnotationBounds } from '../core/state.js';
 import { annotationCanvas, annotationCtx } from '../ui/dom-elements.js';
 import { getAnnotationHandles } from './handles.js';
-import { updateStatusAnnotations } from '../ui/status-bar.js';
-import { updateAnnotationsList } from '../ui/annotations-list.js';
+import { updateStatusAnnotations } from '../ui/chrome/status-bar.js';
+import { updateAnnotationsList } from '../ui/panels/annotations-list.js';
 
 // Draw polygon shape
 export function drawPolygonShape(ctx, x, y, width, height, sides = 6) {
@@ -66,13 +66,13 @@ export function drawCloudShape(ctx, x, y, width, height) {
 }
 
 // Draw textbox content with word wrap
-function drawTextboxContent(ctx, annotation, padding = 5) {
+function drawTextboxContent(ctx, annotation, padding = 3) {
   if (!annotation.text) return;
 
   const width = annotation.width || 150;
   const height = annotation.height || 50;
   const fontSize = annotation.fontSize || 14;
-  const lineSpacing = annotation.lineSpacing || 1.5;
+  const lineSpacing = annotation.lineSpacing || 1.2;
   const lineHeight = fontSize * lineSpacing;
 
   // Build font string with style options
@@ -80,6 +80,7 @@ function drawTextboxContent(ctx, annotation, padding = 5) {
   const fontStyle = (annotation.fontItalic ? 'italic ' : '') + (annotation.fontBold ? 'bold ' : '');
   ctx.fillStyle = annotation.textColor || annotation.color || '#000000';
   ctx.font = `${fontStyle}${fontSize}px ${fontFamily}`;
+  ctx.textBaseline = 'top';
 
   // Get text alignment
   const textAlign = annotation.textAlign || 'left';
@@ -87,10 +88,10 @@ function drawTextboxContent(ctx, annotation, padding = 5) {
 
   // Word wrap text with newline support
   const paragraphs = annotation.text.split('\n');
-  let y = annotation.y + fontSize + padding;
+  let y = annotation.y + padding;
 
   for (let p = 0; p < paragraphs.length; p++) {
-    if (y > annotation.y + height - padding) break;
+    if (y >= annotation.y + height) break;
 
     const words = paragraphs[p].split(' ');
     let line = '';
@@ -113,8 +114,8 @@ function drawTextboxContent(ctx, annotation, padding = 5) {
         // Draw underline if enabled
         if (annotation.fontUnderline) {
           ctx.beginPath();
-          ctx.moveTo(textX, y + 2);
-          ctx.lineTo(textX + lineWidth, y + 2);
+          ctx.moveTo(textX, y + fontSize + 1);
+          ctx.lineTo(textX + lineWidth, y + fontSize + 1);
           ctx.strokeStyle = ctx.fillStyle;
           ctx.lineWidth = 1;
           ctx.stroke();
@@ -123,8 +124,8 @@ function drawTextboxContent(ctx, annotation, padding = 5) {
         // Draw strikethrough if enabled
         if (annotation.fontStrikethrough) {
           ctx.beginPath();
-          ctx.moveTo(textX, y - fontSize / 3);
-          ctx.lineTo(textX + lineWidth, y - fontSize / 3);
+          ctx.moveTo(textX, y + fontSize * 0.6);
+          ctx.lineTo(textX + lineWidth, y + fontSize * 0.6);
           ctx.strokeStyle = ctx.fillStyle;
           ctx.lineWidth = 1;
           ctx.stroke();
@@ -132,12 +133,12 @@ function drawTextboxContent(ctx, annotation, padding = 5) {
 
         line = words[i] + ' ';
         y += lineHeight;
-        if (y > annotation.y + height - padding) break;
+        if (y >= annotation.y + height) break;
       } else {
         line = testLine;
       }
     }
-    if (y <= annotation.y + height - padding && line.trim()) {
+    if (y < annotation.y + height && line.trim()) {
       // Calculate x position based on alignment
       let textX = annotation.x + padding;
       const lineWidth = ctx.measureText(line.trim()).width;
@@ -152,8 +153,8 @@ function drawTextboxContent(ctx, annotation, padding = 5) {
       // Draw underline if enabled
       if (annotation.fontUnderline) {
         ctx.beginPath();
-        ctx.moveTo(textX, y + 2);
-        ctx.lineTo(textX + lineWidth, y + 2);
+        ctx.moveTo(textX, y + fontSize + 1);
+        ctx.lineTo(textX + lineWidth, y + fontSize + 1);
         ctx.strokeStyle = ctx.fillStyle;
         ctx.lineWidth = 1;
         ctx.stroke();
@@ -162,8 +163,8 @@ function drawTextboxContent(ctx, annotation, padding = 5) {
       // Draw strikethrough if enabled
       if (annotation.fontStrikethrough) {
         ctx.beginPath();
-        ctx.moveTo(textX, y - fontSize / 3);
-        ctx.lineTo(textX + lineWidth, y - fontSize / 3);
+        ctx.moveTo(textX, y + fontSize * 0.6);
+        ctx.lineTo(textX + lineWidth, y + fontSize * 0.6);
         ctx.strokeStyle = ctx.fillStyle;
         ctx.lineWidth = 1;
         ctx.stroke();
@@ -172,6 +173,7 @@ function drawTextboxContent(ctx, annotation, padding = 5) {
       y += lineHeight;
     }
   }
+  ctx.textBaseline = 'alphabetic'; // Reset
 }
 
 // Draw arrowhead at specified position
@@ -181,6 +183,8 @@ function drawArrowheadOnCanvas(ctx, x, y, angle, size, style) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(angle);
+  ctx.lineJoin = 'miter';
+  ctx.miterLimit = 10;
 
   ctx.beginPath();
   if (style === 'open' || style === 'stealth') {
@@ -229,6 +233,17 @@ function drawArrowheadOnCanvas(ctx, x, y, angle, size, style) {
   ctx.restore();
 }
 
+// Apply border style (dashed/dotted/solid) to canvas context
+function applyBorderStyle(ctx, borderStyle) {
+  if (borderStyle === 'dashed') {
+    ctx.setLineDash([8, 4]);
+  } else if (borderStyle === 'dotted') {
+    ctx.setLineDash([2, 2]);
+  } else {
+    ctx.setLineDash([]);
+  }
+}
+
 // Draw single annotation
 function drawAnnotation(ctx, annotation) {
   // Use annotation's opacity property
@@ -247,6 +262,9 @@ function drawAnnotation(ctx, annotation) {
   switch (annotation.type) {
     case 'draw':
       ctx.strokeStyle = strokeColor;
+      applyBorderStyle(ctx, annotation.borderStyle);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       ctx.beginPath();
       annotation.path.forEach((point, index) => {
         if (index === 0) {
@@ -256,6 +274,7 @@ function drawAnnotation(ctx, annotation) {
         }
       });
       ctx.stroke();
+      ctx.setLineDash([]);
       break;
 
     case 'highlight':
@@ -266,61 +285,75 @@ function drawAnnotation(ctx, annotation) {
     case 'line':
       ctx.strokeStyle = strokeColor;
       ctx.lineCap = 'round';
+      applyBorderStyle(ctx, annotation.borderStyle);
       ctx.beginPath();
       ctx.moveTo(annotation.startX, annotation.startY);
       ctx.lineTo(annotation.endX, annotation.endY);
       ctx.stroke();
+      ctx.setLineDash([]);
       break;
 
-    case 'arrow':
-      ctx.strokeStyle = strokeColor;
-      // Use fillColor for arrowhead fill (closed styles), fallback to strokeColor
+    case 'arrow': {
+      // Draw arrow onto offscreen canvas at full opacity to avoid overlap artifacts,
+      // then composite onto main canvas with the desired opacity
       const arrowFillColor = annotation.fillColor || strokeColor;
-      ctx.fillStyle = arrowFillColor;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
-      // Set border/line style
-      const arrowBorderStyle = annotation.borderStyle || 'solid';
-      if (arrowBorderStyle === 'dashed') {
-        ctx.setLineDash([8, 4]);
-      } else if (arrowBorderStyle === 'dotted') {
-        ctx.setLineDash([2, 2]);
-      } else {
-        ctx.setLineDash([]);
-      }
-
-      // Draw the line
-      ctx.beginPath();
-      ctx.moveTo(annotation.startX, annotation.startY);
-      ctx.lineTo(annotation.endX, annotation.endY);
-      ctx.stroke();
-
-      // Reset line dash for arrowheads
-      ctx.setLineDash([]);
-
-      // Draw arrowhead at end
       const endHead = annotation.endHead || 'open';
       const startHead = annotation.startHead || 'none';
       const headSize = annotation.headSize || 12;
+      const lw = annotation.lineWidth || 3;
+
+      // Calculate bounding box with padding for arrowheads
+      const pad = headSize + lw + 2;
+      const minAX = Math.min(annotation.startX, annotation.endX) - pad;
+      const minAY = Math.min(annotation.startY, annotation.endY) - pad;
+      const maxAX = Math.max(annotation.startX, annotation.endX) + pad;
+      const maxAY = Math.max(annotation.startY, annotation.endY) + pad;
+      const offW = maxAX - minAX;
+      const offH = maxAY - minAY;
+
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width = offW;
+      offCanvas.height = offH;
+      const offCtx = offCanvas.getContext('2d');
+
+      // Translate so coordinates match
+      offCtx.translate(-minAX, -minAY);
+      offCtx.strokeStyle = strokeColor;
+      offCtx.fillStyle = arrowFillColor;
+      offCtx.lineWidth = lw;
+      offCtx.lineCap = 'butt';
+      offCtx.lineJoin = 'miter';
+
+      applyBorderStyle(offCtx, annotation.borderStyle);
+
+      offCtx.beginPath();
+      offCtx.moveTo(annotation.startX, annotation.startY);
+      offCtx.lineTo(annotation.endX, annotation.endY);
+      offCtx.stroke();
+
+      offCtx.setLineDash([]);
 
       if (endHead !== 'none') {
         const endAngle = Math.atan2(annotation.endY - annotation.startY, annotation.endX - annotation.startX);
-        drawArrowheadOnCanvas(ctx, annotation.endX, annotation.endY, endAngle, headSize, endHead);
+        drawArrowheadOnCanvas(offCtx, annotation.endX, annotation.endY, endAngle, headSize, endHead);
       }
 
-      // Draw arrowhead at start (if enabled)
       if (startHead !== 'none') {
         const startAngle = Math.atan2(annotation.startY - annotation.endY, annotation.startX - annotation.endX);
-        drawArrowheadOnCanvas(ctx, annotation.startX, annotation.startY, startAngle, headSize, startHead);
+        drawArrowheadOnCanvas(offCtx, annotation.startX, annotation.startY, startAngle, headSize, startHead);
       }
+
+      // Composite the offscreen arrow onto the main canvas with opacity
+      ctx.drawImage(offCanvas, minAX, minAY);
       break;
+    }
 
     case 'polyline':
       if (annotation.points && annotation.points.length >= 2) {
         ctx.strokeStyle = strokeColor;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
+        applyBorderStyle(ctx, annotation.borderStyle);
         ctx.beginPath();
         annotation.points.forEach((point, index) => {
           if (index === 0) {
@@ -330,6 +363,7 @@ function drawAnnotation(ctx, annotation) {
           }
         });
         ctx.stroke();
+        ctx.setLineDash([]);
       }
       break;
 
@@ -360,7 +394,9 @@ function drawAnnotation(ctx, annotation) {
       }
 
       ctx.strokeStyle = strokeColor;
+      applyBorderStyle(ctx, annotation.borderStyle);
       ctx.stroke();
+      ctx.setLineDash([]);
       ctx.restore();
       break;
 
@@ -382,13 +418,17 @@ function drawAnnotation(ctx, annotation) {
       }
 
       ctx.strokeStyle = strokeColor;
+      applyBorderStyle(ctx, annotation.borderStyle);
       ctx.strokeRect(annotation.x, annotation.y, annotation.width, annotation.height);
+      ctx.setLineDash([]);
       ctx.restore();
       break;
 
     case 'polygon':
       ctx.strokeStyle = strokeColor;
+      applyBorderStyle(ctx, annotation.borderStyle);
       drawPolygonShape(ctx, annotation.x, annotation.y, annotation.width, annotation.height, annotation.sides || 6);
+      ctx.setLineDash([]);
       break;
 
     case 'cloud':
@@ -510,6 +550,11 @@ function drawAnnotation(ctx, annotation) {
         ctx.strokeRect(annotation.x, annotation.y, tbWidth, tbHeight);
         ctx.setLineDash([]); // Reset line dash
       }
+
+      // Clip text to textbox bounds
+      ctx.beginPath();
+      ctx.rect(annotation.x, annotation.y, tbWidth, tbHeight);
+      ctx.clip();
 
       // Draw text content
       drawTextboxContent(ctx, annotation);

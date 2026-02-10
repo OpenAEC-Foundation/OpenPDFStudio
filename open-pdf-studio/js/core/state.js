@@ -1,5 +1,5 @@
 import { DEFAULT_PREFERENCES } from './constants.js';
-import { isTauri, getUsername } from '../tauri-api.js';
+import { isTauri, getUsername } from './platform.js';
 
 // Get system username for default author
 async function getSystemUsername() {

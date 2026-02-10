@@ -1,18 +1,18 @@
 import { state, selectAllOnPage, clearSelection } from '../core/state.js';
 import { undo, redo, recordBulkDelete } from '../core/undo-manager.js';
 import { propertiesPanel, toolUndo, toolClear, propDelete, zoomInBtn, zoomOutBtn } from '../ui/dom-elements.js';
-import { setTool } from '../tools/manager.js';
+import { setTool } from './manager.js';
 import { showPreferencesDialog, hidePreferencesDialog } from '../core/preferences.js';
-import { showDocPropertiesDialog } from '../ui/dialogs.js';
+import { showDocPropertiesDialog } from '../ui/chrome/dialogs.js';
 import { copyAnnotation, copyAnnotations, pasteFromClipboard } from '../annotations/clipboard.js';
 import { redrawAnnotations, redrawContinuous } from '../annotations/rendering.js';
 import { openPDFFile } from '../pdf/loader.js';
 import { savePDF, savePDFAs } from '../pdf/saver.js';
-import { toggleAnnotationsListPanel } from '../ui/annotations-list.js';
-import { toggleLeftPanel } from '../ui/left-panel.js';
-import { switchToTab } from '../ui/ribbon.js';
+import { toggleAnnotationsListPanel } from '../ui/panels/annotations-list.js';
+import { toggleLeftPanel } from '../ui/panels/left-panel.js';
+import { switchToTab } from '../ui/chrome/ribbon.js';
 import { openFindBar, closeFindBar } from '../search/find-bar.js';
-import { hideProperties, showProperties, showMultiSelectionProperties } from '../ui/properties-panel.js';
+import { hideProperties, showProperties, showMultiSelectionProperties } from '../ui/panels/properties-panel.js';
 
 // Handle keydown events
 export function handleKeydown(e) {

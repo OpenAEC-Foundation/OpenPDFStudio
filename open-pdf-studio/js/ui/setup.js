@@ -16,23 +16,23 @@ import {
   propAlignLeft, propAlignCenter, propAlignRight,
   propImageWidth, propImageHeight, propImageRotation, propImageReset,
   propArrowStart, propArrowEnd, propArrowHeadSize
-} from '../ui/dom-elements.js';
-import { handleMouseDown, handleMouseMove, handleMouseUp } from './mouse-handlers.js';
-import { initKeyboardHandlers } from './keyboard-handlers.js';
+} from './dom-elements.js';
+import { handleMouseDown, handleMouseMove, handleMouseUp } from '../tools/mouse-handlers.js';
+import { initKeyboardHandlers } from '../tools/keyboard-handlers.js';
 import { setTool } from '../tools/manager.js';
 import { renderPage, renderContinuous, setViewMode, zoomIn, zoomOut, fitWidth, fitPage, actualSize, goToPage, rotatePage } from '../pdf/renderer.js';
 import { openPDFFile, loadPDF } from '../pdf/loader.js';
 import { savePDF, savePDFAs } from '../pdf/saver.js';
-import { showProperties, hideProperties, closePropertiesPanel, updateAnnotationProperties, updateTextFormatProperties, updateArrowProperties } from '../ui/properties-panel.js';
+import { showProperties, hideProperties, closePropertiesPanel, updateAnnotationProperties, updateTextFormatProperties, updateArrowProperties } from './panels/properties-panel.js';
 import { redrawAnnotations, redrawContinuous, updateQuickAccessButtons } from '../annotations/rendering.js';
-import { closeAllMenus, closeBackstage } from '../ui/menus.js';
+import { closeAllMenus, closeBackstage } from './chrome/menus.js';
 import { showPreferencesDialog, hidePreferencesDialog, savePreferencesFromDialog, resetPreferencesToDefaults, applyTheme, savePreferences } from '../core/preferences.js';
-import { showAboutDialog, showDocPropertiesDialog } from '../ui/dialogs.js';
-import { toggleAnnotationsListPanel } from '../ui/annotations-list.js';
-import { toggleLeftPanel } from '../ui/left-panel.js';
-import { closeActiveTab, createTab, markDocumentModified, hasUnsavedChanges, getUnsavedDocumentNames } from '../ui/tabs.js';
+import { showAboutDialog, showDocPropertiesDialog } from './chrome/dialogs.js';
+import { toggleAnnotationsListPanel } from './panels/annotations-list.js';
+import { toggleLeftPanel } from './panels/left-panel.js';
+import { closeActiveTab, createTab, markDocumentModified, hasUnsavedChanges, getUnsavedDocumentNames } from './chrome/tabs.js';
 import { openFindBar } from '../search/find-bar.js';
-import { isTauri, minimizeWindow, maximizeWindow, closeWindow, openExternal } from '../tauri-api.js';
+import { isTauri, minimizeWindow, maximizeWindow, closeWindow, openExternal } from '../core/platform.js';
 
 // Setup window control buttons (minimize, maximize, close)
 function setupWindowControls() {

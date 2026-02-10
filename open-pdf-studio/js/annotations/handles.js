@@ -268,21 +268,86 @@ export function findHandleAt(x, y, annotation) {
   return null;
 }
 
-// Get cursor style for handle type
-export function getCursorForHandle(handleType) {
+// Cache for generated cursor SVG data URIs
+const cursorCache = new Map();
+
+// Generate an SVG resize cursor matching the native Windows double-headed arrow style
+function createRotatedResizeCursor(angleDeg) {
+  // Normalize to 0-180 range (resize arrows are bidirectional)
+  const norm = ((angleDeg % 180) + 180) % 180;
+  const key = Math.round(norm);
+  if (cursorCache.has(key)) return cursorCache.get(key);
+
+  const size = 32;
+  const cx = size / 2;
+  const cy = size / 2;
+  const rad = -key * Math.PI / 180;
+  const c = Math.cos(rad);
+  const s = Math.sin(rad);
+
+  // Direction vectors: along the arrow axis and perpendicular
+  // dx,dy = axis direction, px,py = perpendicular
+  const dx = -s, dy = -c;
+  const px = c, py = -s;
+
+  // Native Windows style: wide triangular arrowheads connected by a narrow shaft
+  // Total length tip-to-tip
+  const tipLen = 11;
+  // Arrowhead dimensions
+  const headLen = 5;
+  const headW = 5;
+  // Shaft half-width
+  const shaftW = 1.5;
+
+  // Build the outline as a single polygon (like the native cursor)
+  // Tip 1 (top/left end)
+  const t1x = cx - tipLen * dx, t1y = cy - tipLen * dy;
+  // Base of arrowhead 1
+  const b1x = cx - (tipLen - headLen) * dx, b1y = cy - (tipLen - headLen) * dy;
+  // Tip 2 (bottom/right end)
+  const t2x = cx + tipLen * dx, t2y = cy + tipLen * dy;
+  // Base of arrowhead 2
+  const b2x = cx + (tipLen - headLen) * dx, b2y = cy + (tipLen - headLen) * dy;
+
+  // Points forming the full arrow shape (clockwise)
+  const pts = [
+    // Arrowhead 1 tip
+    [t1x, t1y],
+    // Arrowhead 1 left wing
+    [b1x - headW * px, b1y - headW * py],
+    // Shaft left side at head 1 base
+    [b1x - shaftW * px, b1y - shaftW * py],
+    // Shaft left side at head 2 base
+    [b2x - shaftW * px, b2y - shaftW * py],
+    // Arrowhead 2 left wing
+    [b2x - headW * px, b2y - headW * py],
+    // Arrowhead 2 tip
+    [t2x, t2y],
+    // Arrowhead 2 right wing
+    [b2x + headW * px, b2y + headW * py],
+    // Shaft right side at head 2 base
+    [b2x + shaftW * px, b2y + shaftW * py],
+    // Shaft right side at head 1 base
+    [b1x + shaftW * px, b1y + shaftW * py],
+    // Arrowhead 1 right wing
+    [b1x + headW * px, b1y + headW * py],
+  ];
+
+  const pointsStr = pts.map(p => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">` +
+    `<polygon points="${pointsStr}" fill="black" stroke="white" stroke-width="2" stroke-linejoin="round"/>` +
+    `</svg>`;
+
+  const dataUri = `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${cx} ${cy}, auto`;
+  cursorCache.set(key, dataUri);
+  return dataUri;
+}
+
+// Get cursor style for handle type, accounting for annotation rotation
+export function getCursorForHandle(handleType, rotation) {
+  // Non-directional cursors - rotation doesn't affect these
   switch (handleType) {
-    case HANDLE_TYPES.TOP_LEFT:
-    case HANDLE_TYPES.BOTTOM_RIGHT:
-      return 'nwse-resize';
-    case HANDLE_TYPES.TOP_RIGHT:
-    case HANDLE_TYPES.BOTTOM_LEFT:
-      return 'nesw-resize';
-    case HANDLE_TYPES.TOP:
-    case HANDLE_TYPES.BOTTOM:
-      return 'ns-resize';
-    case HANDLE_TYPES.LEFT:
-    case HANDLE_TYPES.RIGHT:
-      return 'ew-resize';
     case HANDLE_TYPES.LINE_START:
     case HANDLE_TYPES.LINE_END:
       return 'crosshair';
@@ -294,7 +359,40 @@ export function getCursorForHandle(handleType) {
       return 'crosshair';
     case HANDLE_TYPES.CALLOUT_KNEE:
       return 'move';
+  }
+
+  // Map each handle to its base angle (0° = vertical/N-S)
+  let baseAngle;
+  switch (handleType) {
+    case HANDLE_TYPES.TOP:
+    case HANDLE_TYPES.BOTTOM:
+      baseAngle = 0;
+      break;
+    case HANDLE_TYPES.TOP_RIGHT:
+    case HANDLE_TYPES.BOTTOM_LEFT:
+      baseAngle = 45;
+      break;
+    case HANDLE_TYPES.LEFT:
+    case HANDLE_TYPES.RIGHT:
+      baseAngle = 90;
+      break;
+    case HANDLE_TYPES.TOP_LEFT:
+    case HANDLE_TYPES.BOTTOM_RIGHT:
+      baseAngle = 135;
+      break;
     default:
       return 'default';
   }
+
+  const totalAngle = baseAngle + (rotation || 0);
+
+  // For no rotation or near-zero, use standard CSS cursors (crisper)
+  if (!rotation || Math.abs(rotation) < 1) {
+    const cursorAngles = ['ns-resize', 'nesw-resize', 'ew-resize', 'nwse-resize'];
+    const index = Math.round(((baseAngle % 360 + 360) % 360) / 45) % 4;
+    return cursorAngles[index];
+  }
+
+  // Use custom SVG cursor rotated to the exact angle
+  return createRotatedResizeCursor(totalAngle);
 }

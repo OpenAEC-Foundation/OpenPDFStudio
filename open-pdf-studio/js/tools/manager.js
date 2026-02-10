@@ -7,9 +7,9 @@ import {
   toolStamp, toolSignature, toolMeasureDistance, toolMeasureArea, toolMeasurePerimeter,
   toolRedaction
 } from '../ui/dom-elements.js';
-import { hideProperties } from '../ui/properties-panel.js';
+import { hideProperties } from '../ui/panels/properties-panel.js';
 import { redrawAnnotations } from '../annotations/rendering.js';
-import { updateStatusTool } from '../ui/status-bar.js';
+import { updateStatusTool } from '../ui/chrome/status-bar.js';
 
 // Get cursor for a given tool
 export function getCursorForTool(tool = state.currentTool) {

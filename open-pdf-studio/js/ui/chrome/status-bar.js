@@ -1,5 +1,5 @@
-import { state } from '../core/state.js';
-import { statusTool, statusAnnotations, statusMessage, zoomLevel, pageInput, pageTotal } from './dom-elements.js';
+import { state } from '../../core/state.js';
+import { statusTool, statusAnnotations, statusMessage, zoomLevel, pageInput, pageTotal } from '../dom-elements.js';
 
 // Update status bar tool indicator
 export function updateStatusTool() {

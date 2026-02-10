@@ -1,6 +1,6 @@
 import { state } from '../core/state.js';
 import { redrawAnnotations, redrawContinuous } from '../annotations/rendering.js';
-import { showProperties } from '../ui/properties-panel.js';
+import { showProperties } from '../ui/panels/properties-panel.js';
 import { recordAdd, recordModify } from '../core/undo-manager.js';
 import { cloneAnnotation } from '../annotations/factory.js';
 

@@ -1,8 +1,8 @@
 import { state, getPageRotation } from '../core/state.js';
-import { showLoading, hideLoading } from '../ui/dialogs.js';
+import { showLoading, hideLoading } from '../ui/chrome/dialogs.js';
 import { hexToColorArray } from '../utils/colors.js';
-import { markDocumentSaved, updateWindowTitle } from '../ui/tabs.js';
-import { isTauri, readBinaryFile, writeBinaryFile, saveFileDialog } from '../tauri-api.js';
+import { markDocumentSaved, updateWindowTitle } from '../ui/chrome/tabs.js';
+import { isTauri, readBinaryFile, writeBinaryFile, saveFileDialog } from '../core/platform.js';
 import { getCachedPdfBytes } from './loader.js';
 import { PDFDocument, PDFString, PDFName, PDFArray, PDFStream, degrees } from '../../node_modules/pdf-lib/dist/pdf-lib.esm.js';
 

@@ -1,6 +1,6 @@
-import { state, getActiveDocument } from '../core/state.js';
-import { goToPage } from '../pdf/renderer.js';
-import { isTauri, saveFileDialog, writeBinaryFile, openExternal } from '../tauri-api.js';
+import { state, getActiveDocument } from '../../core/state.js';
+import { goToPage } from '../../pdf/renderer.js';
+import { isTauri, saveFileDialog, writeBinaryFile, openExternal } from '../../core/platform.js';
 
 // DOM elements
 const linksContainer = document.getElementById('links-container');

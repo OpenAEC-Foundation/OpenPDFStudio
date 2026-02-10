@@ -1,4 +1,4 @@
-import { state } from '../core/state.js';
+import { state } from '../../core/state.js';
 
 // Open backstage overlay
 export function openBackstage() {

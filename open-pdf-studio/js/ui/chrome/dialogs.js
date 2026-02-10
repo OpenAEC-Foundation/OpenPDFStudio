@@ -1,5 +1,5 @@
-import { loadingOverlay, loadingText, aboutDialog } from './dom-elements.js';
-import { state } from '../core/state.js';
+import { loadingOverlay, loadingText, aboutDialog } from '../dom-elements.js';
+import { state } from '../../core/state.js';
 
 // Show loading overlay
 export function showLoading(message = 'Loading...') {

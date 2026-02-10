@@ -1,6 +1,6 @@
-import { state } from '../core/state.js';
+import { state } from '../../core/state.js';
 import { updateColorDisplay } from './properties-panel.js';
-import { redrawAnnotations, redrawContinuous } from '../annotations/rendering.js';
+import { redrawAnnotations, redrawContinuous } from '../../annotations/rendering.js';
 
 // Color palette options - organized by columns (each column = one hue with shades)
 // Each inner array is a column (from light to dark)
