@@ -63,8 +63,6 @@ jobs:
             args: ''
 
     runs-on: ${{ matrix.platform }}
-    env:
-      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
     defaults:
       run:
         working-directory: open-pdf-studio
@@ -89,9 +87,9 @@ jobs:
       - name: Install frontend dependencies
         run: npm install
 
-      - name: Write signing key to file
+      - name: Prepare signing key
         run: |
-          echo "$TAURI_SIGNING_PRIVATE_KEY" > "$RUNNER_TEMP/signing-key.key"
+          echo "${{ secrets.TAURI_SIGNING_PRIVATE_KEY_B64 }}" | base64 -d > "$RUNNER_TEMP/signing-key.key"
           KEY_SIZE=$(wc -c < "$RUNNER_TEMP/signing-key.key")
           echo "Signing key written ($KEY_SIZE bytes)"
         shell: bash
@@ -100,6 +98,7 @@ jobs:
         uses: tauri-apps/tauri-action@action-v0.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY_PATH: ${{ runner.temp }}/signing-key.key
         with:
           projectPath: open-pdf-studio
           releaseId: ${{ needs.create-release.outputs.release_id }}
