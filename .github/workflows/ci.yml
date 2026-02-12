@@ -43,4 +43,4 @@ jobs:
         run: npm install
 
       - name: Build Tauri app
-        run: npm run tauri build
+        run: npm run tauri build -- --no-bundle
