@@ -92,13 +92,15 @@ jobs:
           echo "${{ secrets.TAURI_SIGNING_PRIVATE_KEY_B64 }}" | base64 -d > "$RUNNER_TEMP/signing-key.key"
           KEY_SIZE=$(wc -c < "$RUNNER_TEMP/signing-key.key")
           echo "Signing key written ($KEY_SIZE bytes)"
+          echo "TAURI_SIGNING_PRIVATE_KEY<<KEYEOF" >> $GITHUB_ENV
+          cat "$RUNNER_TEMP/signing-key.key" >> $GITHUB_ENV
+          echo "KEYEOF" >> $GITHUB_ENV
         shell: bash
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@action-v0.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY_PATH: ${{ runner.temp }}/signing-key.key
         with:
           projectPath: open-pdf-studio
           releaseId: ${{ needs.create-release.outputs.release_id }}
