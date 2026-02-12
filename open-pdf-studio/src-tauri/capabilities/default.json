@@ -24,6 +24,9 @@
     "fs:allow-exists",
     "fs:allow-stat",
     "shell:allow-open",
-    "os:default"
+    "os:default",
+    "updater:default",
+    "process:allow-restart",
+    "process:allow-exit"
   ]
 }
