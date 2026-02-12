@@ -218,69 +218,6 @@ N - Note`;
     alert(shortcuts);
   });
 
-  document.getElementById('ribbon-check-updates')?.addEventListener('click', async () => {
-    const GITHUB_REPO = 'OpenAEC-Foundation/Open-2D-Studio';
-    const CURRENT_VERSION = '1.0.3';
-
-    try {
-      const btn = document.getElementById('ribbon-check-updates');
-      const originalLabel = btn.querySelector('.ribbon-btn-label').textContent;
-      btn.querySelector('.ribbon-btn-label').textContent = '...';
-      btn.disabled = true;
-
-      const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
-        headers: { 'Accept': 'application/vnd.github+json' }
-      });
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          alert('No releases found yet.\n\nYou are running the latest development version.');
-        } else {
-          throw new Error(`GitHub API error: ${response.status}`);
-        }
-        return;
-      }
-
-      const release = await response.json();
-      const latestVersion = release.tag_name.replace(/^v/, '');
-
-      // Compare versions
-      const current = CURRENT_VERSION.split('.').map(Number);
-      const latest = latestVersion.split('.').map(Number);
-
-      let needsUpdate = false;
-      for (let i = 0; i < Math.max(current.length, latest.length); i++) {
-        const c = current[i] || 0;
-        const l = latest[i] || 0;
-        if (l > c) { needsUpdate = true; break; }
-        if (c > l) { break; }
-      }
-
-      if (needsUpdate) {
-        const update = confirm(
-          `A new version is available!\n\n` +
-          `Current: v${CURRENT_VERSION}\n` +
-          `Latest: v${latestVersion}\n\n` +
-          `${release.name || ''}\n\n` +
-          `Click OK to open the download page.`
-        );
-        if (update) {
-          openExternal(release.html_url);
-        }
-      } else {
-        alert(`You're up to date!\n\nCurrent version: v${CURRENT_VERSION}`);
-      }
-    } catch (err) {
-      console.error('Update check failed:', err);
-      alert('Failed to check for updates.\n\nPlease check your internet connection and try again.');
-    } finally {
-      const btn = document.getElementById('ribbon-check-updates');
-      if (btn) {
-        btn.querySelector('.ribbon-btn-label').textContent = 'Updates';
-        btn.disabled = false;
-      }
-    }
-  });
 
   // Preferences dialog buttons
   document.getElementById('pref-close-btn')?.addEventListener('click', hidePreferencesDialog);

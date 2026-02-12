@@ -169,6 +169,16 @@ export async function invoke(cmd, args = {}) {
   return null;
 }
 
+// Get app version from Tauri config
+export async function getAppVersion() {
+  if (!isTauri()) return null;
+  try {
+    return await window.__TAURI__.app.getVersion();
+  } catch {
+    return null;
+  }
+}
+
 // Check if running in dev/debug mode
 export async function isDevMode() {
   try {

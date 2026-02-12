@@ -1,6 +1,6 @@
 import { loadingOverlay, loadingText, aboutDialog } from '../dom-elements.js';
 import { state } from '../../core/state.js';
-import { openExternal } from '../../core/platform.js';
+import { openExternal, getAppVersion } from '../../core/platform.js';
 
 // Show loading overlay
 export function showLoading(message = 'Loading...') {
@@ -34,7 +34,14 @@ export function hideAboutDialog() {
 }
 
 // Initialize about dialog
-export function initAboutDialog() {
+export async function initAboutDialog() {
+  // Populate version from Tauri config
+  const version = await getAppVersion();
+  const versionEl = document.getElementById('about-version');
+  if (versionEl && version) {
+    versionEl.textContent = `Version ${version}`;
+  }
+
   const closeBtn = aboutDialog?.querySelector('.about-close-btn');
   if (closeBtn) {
     closeBtn.addEventListener('click', hideAboutDialog);
