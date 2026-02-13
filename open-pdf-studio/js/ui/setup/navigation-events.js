@@ -110,6 +110,7 @@ export function setupNavigationEvents() {
 // Setup wheel zoom
 let _zoomRenderTimer = null;
 let _zoomBaseScale = null; // scale at which the canvas was last truly rendered
+let _pageNavCooldown = false; // prevent rapid page flipping from wheel events
 
 export function setupWheelZoom() {
   document.querySelector('.main-view')?.addEventListener('wheel', async (e) => {
@@ -210,6 +211,7 @@ export function setupWheelZoom() {
 
     // Page navigation in single page mode (without Ctrl)
     if (state.viewMode !== 'single') return;
+    if (_pageNavCooldown) return;
 
     const pdfContainer = document.getElementById('pdf-container');
     if (!pdfContainer) return;
@@ -217,20 +219,33 @@ export function setupWheelZoom() {
     const scrollHeight = pdfContainer.scrollHeight;
     const clientHeight = pdfContainer.clientHeight;
 
-    // Scrolling down at the bottom
-    if (e.deltaY > 0 && scrollTop + clientHeight >= scrollHeight - 5) {
+    // At low zoom the page fits entirely in the viewport — no scrollbar.
+    // Scroll thresholds don't work here, so treat it as always at boundary.
+    const canScroll = scrollHeight > clientHeight + 1;
+    const atBottom = !canScroll || scrollTop + clientHeight >= scrollHeight - 5;
+    const atTop = !canScroll || scrollTop <= 5;
+
+    // Scrolling down at the bottom (or page fits in viewport)
+    if (e.deltaY > 0 && atBottom) {
       if (state.currentPage < state.pdfDoc.numPages) {
         e.preventDefault();
+        _pageNavCooldown = true;
         await goToPage(state.currentPage + 1);
         pdfContainer.scrollTop = 0;
+        setTimeout(() => { _pageNavCooldown = false; }, 300);
       }
     }
-    // Scrolling up at the top
-    else if (e.deltaY < 0 && scrollTop <= 5) {
+    // Scrolling up at the top (or page fits in viewport)
+    else if (e.deltaY < 0 && atTop) {
       if (state.currentPage > 1) {
         e.preventDefault();
+        _pageNavCooldown = true;
         await goToPage(state.currentPage - 1);
-        pdfContainer.scrollTop = pdfContainer.scrollHeight;
+        // Scroll to bottom of previous page only if it needs scrolling
+        if (pdfContainer.scrollHeight > pdfContainer.clientHeight + 1) {
+          pdfContainer.scrollTop = pdfContainer.scrollHeight - pdfContainer.clientHeight;
+        }
+        setTimeout(() => { _pageNavCooldown = false; }, 300);
       }
     }
   }, { passive: false });

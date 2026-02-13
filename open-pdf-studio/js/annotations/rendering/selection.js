@@ -147,6 +147,8 @@ export function drawSelectionHandles(ctx, annotation) {
       }
       break;
     case 'image':
+    case 'stamp':
+    case 'signature':
       ctx.strokeRect(annotation.x - 2, annotation.y - 2, annotation.width + 4, annotation.height + 4);
       // Draw line from top center to rotation handle (green color)
       ctx.strokeStyle = '#22c55e';

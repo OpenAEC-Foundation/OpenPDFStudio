@@ -45,6 +45,19 @@ export function createDocument(filePath = null) {
   };
 }
 
+// Untitled document counter for generating unique names
+let untitledCounter = 0;
+
+/**
+ * Get the next untitled document name
+ * @returns {string} Name like "Untitled.pdf", "Untitled 2.pdf", etc.
+ */
+export function getNextUntitledName() {
+  untitledCounter++;
+  if (untitledCounter === 1) return 'Untitled.pdf';
+  return `Untitled ${untitledCounter}.pdf`;
+}
+
 // Central mutable state object
 // All modules import this and can read/modify state directly
 export const state = {
@@ -396,6 +409,11 @@ export function getAnnotationBounds(ann) {
       return { x: ann.x, y: ann.y - (ann.fontSize || 16), width: 100, height: ann.fontSize || 16 };
     case 'comment':
       return { x: ann.x, y: ann.y, width: ann.width || 24, height: ann.height || 24 };
+    case 'image':
+    case 'stamp':
+    case 'signature':
+    case 'redaction':
+      return { x: ann.x, y: ann.y, width: ann.width, height: ann.height };
     case 'textHighlight':
     case 'textStrikethrough':
     case 'textUnderline':

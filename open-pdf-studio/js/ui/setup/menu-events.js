@@ -3,9 +3,9 @@ import { propertiesPanel } from '../dom-elements.js';
 import { openPDFFile } from '../../pdf/loader.js';
 import { savePDF, savePDFAs } from '../../pdf/saver.js';
 import { showProperties, hideProperties, closePropertiesPanel } from '../panels/properties-panel.js';
-import { closeAllMenus, closeBackstage } from '../chrome/menus.js';
+import { closeAllMenus, closeBackstage, openBackstage } from '../chrome/menus.js';
 import { showPreferencesDialog, hidePreferencesDialog, savePreferencesFromDialog, resetPreferencesToDefaults } from '../../core/preferences.js';
-import { showAboutDialog, showDocPropertiesDialog } from '../chrome/dialogs.js';
+import { showDocPropertiesDialog, showNewDocDialog, showExportPanel, hideExportPanel, showAboutPanel, hideAboutPanel } from '../chrome/dialogs.js';
 import { toggleAnnotationsListPanel } from '../panels/annotations-list.js';
 import { toggleLeftPanel } from '../panels/left-panel.js';
 import { hasUnsavedChanges, getUnsavedDocumentNames } from '../chrome/tabs.js';
@@ -16,38 +16,66 @@ import { setTool } from '../../tools/manager.js';
 
 // Setup menu event listeners
 export function setupMenuEvents() {
+  // Helper to hide all backstage content panels
+  function hideAllBsPanels() {
+    hideExportPanel();
+    hideAboutPanel();
+  }
+
   // Backstage file items
+  document.getElementById('bs-new')?.addEventListener('click', () => {
+    hideAllBsPanels();
+    closeBackstage();
+    showNewDocDialog();
+  });
+
   document.getElementById('bs-open')?.addEventListener('click', () => {
+    hideAllBsPanels();
     closeBackstage();
     openPDFFile();
   });
 
   document.getElementById('bs-save')?.addEventListener('click', async () => {
+    hideAllBsPanels();
     closeBackstage();
     await savePDF();
   });
 
   document.getElementById('bs-save-as')?.addEventListener('click', async () => {
+    hideAllBsPanels();
     closeBackstage();
     await savePDFAs();
   });
 
+  document.getElementById('bs-export')?.addEventListener('click', () => {
+    hideAboutPanel();
+    showExportPanel();
+  });
+
+  document.getElementById('bs-import')?.addEventListener('click', () => {
+    hideAllBsPanels();
+    // Import functionality placeholder
+  });
+
   document.getElementById('bs-doc-properties')?.addEventListener('click', () => {
+    hideAllBsPanels();
     closeBackstage();
     showDocPropertiesDialog();
   });
 
   document.getElementById('bs-preferences')?.addEventListener('click', () => {
+    hideAllBsPanels();
     closeBackstage();
     showPreferencesDialog();
   });
 
   document.getElementById('bs-about')?.addEventListener('click', () => {
-    closeBackstage();
-    showAboutDialog();
+    hideExportPanel();
+    showAboutPanel();
   });
 
   document.getElementById('bs-exit')?.addEventListener('click', async () => {
+    hideAllBsPanels();
     closeBackstage();
     if (hasUnsavedChanges()) {
       const names = getUnsavedDocumentNames().join(', ');
@@ -101,10 +129,11 @@ export function setupMenuEvents() {
     setViewMode('single');
   });
 
-  document.getElementById('menu-continuous')?.addEventListener('click', () => {
-    closeAllMenus();
-    setViewMode('continuous');
-  });
+  // Continuous mode disabled — needs further work
+  // document.getElementById('menu-continuous')?.addEventListener('click', () => {
+  //   closeAllMenus();
+  //   setViewMode('continuous');
+  // });
 
   document.getElementById('menu-show-left-panel')?.addEventListener('click', () => {
     closeAllMenus();
@@ -178,7 +207,8 @@ export function setupMenuEvents() {
 
   // Help ribbon buttons
   document.getElementById('ribbon-about')?.addEventListener('click', () => {
-    showAboutDialog();
+    openBackstage();
+    showAboutPanel();
   });
 
   document.getElementById('ribbon-file-assoc')?.addEventListener('click', () => {
@@ -189,6 +219,7 @@ export function setupMenuEvents() {
     const shortcuts = `Keyboard Shortcuts:
 
 FILE:
+Ctrl+N - New Document
 Ctrl+O - Open PDF
 Ctrl+S - Save
 Ctrl+W - Close
@@ -225,12 +256,6 @@ N - Note`;
   document.getElementById('pref-save-btn')?.addEventListener('click', savePreferencesFromDialog);
   document.getElementById('pref-reset-btn')?.addEventListener('click', resetPreferencesToDefaults);
 
-  // Close preferences dialog when clicking overlay background
-  document.getElementById('preferences-dialog')?.addEventListener('click', (e) => {
-    if (e.target.id === 'preferences-dialog') {
-      hidePreferencesDialog();
-    }
-  });
 
   // File association - Set as default PDF viewer
   document.getElementById('pref-set-default-app')?.addEventListener('click', async () => {

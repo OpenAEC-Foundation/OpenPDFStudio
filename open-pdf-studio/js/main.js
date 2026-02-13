@@ -11,7 +11,8 @@ import { loadPreferences, savePreferences } from './core/preferences.js';
 import { initCanvasContexts } from './ui/dom-elements.js';
 
 // UI initialization
-import { initAboutDialog, initDocPropertiesDialog } from './ui/chrome/dialogs.js';
+import { initAboutDialog, initDocPropertiesDialog, initNewDocDialog, initExportDialog } from './ui/chrome/dialogs.js';
+import { initSignatureDialog } from './annotations/signature.js';
 import { initMenus } from './ui/chrome/menus.js';
 import { initRibbon } from './ui/chrome/ribbon.js';
 import { initContextMenus } from './ui/chrome/context-menus.js';
@@ -74,6 +75,9 @@ async function init() {
   initRibbon();
   initAboutDialog();
   initDocPropertiesDialog();
+  initNewDocDialog();
+  initSignatureDialog();
+  initExportDialog();
   initContextMenus();
   initAnnotationsList();
   initAttachments();

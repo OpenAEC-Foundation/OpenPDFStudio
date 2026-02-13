@@ -1,4 +1,4 @@
-import { state, getPageRotation } from '../core/state.js';
+import { state, getPageRotation, getActiveDocument } from '../core/state.js';
 import { showLoading, hideLoading } from '../ui/chrome/dialogs.js';
 import { hexToColorArray } from '../utils/colors.js';
 import { markDocumentSaved, updateWindowTitle } from '../ui/chrome/tabs.js';
@@ -11,8 +11,8 @@ import { getAnnotationStorage, getAnnotIdToFieldName } from './form-layer.js';
 // Save PDF with annotations
 export async function savePDF(saveAsPath = null) {
   if (!state.currentPdfPath && !saveAsPath) {
-    alert('No PDF loaded');
-    return false;
+    // Untitled document — redirect to Save As
+    return await savePDFAs();
   }
 
   if (!isTauri()) {
@@ -23,9 +23,14 @@ export async function savePDF(saveAsPath = null) {
   try {
     showLoading('Saving PDF...');
 
-    // Get original PDF bytes (from cache or disk)
-    // Get original PDF bytes (from cache or disk)
+    // Get original PDF bytes (from cache or disk, with memory key fallback for untitled docs)
     let existingPdfBytes = getCachedPdfBytes(state.currentPdfPath);
+    if (!existingPdfBytes) {
+      const doc = getActiveDocument();
+      if (doc) {
+        existingPdfBytes = getCachedPdfBytes(`__memory__${doc.id}`);
+      }
+    }
     if (!existingPdfBytes) {
       existingPdfBytes = await readBinaryFile(state.currentPdfPath);
     }
@@ -571,7 +576,7 @@ export async function savePDF(saveAsPath = null) {
 
             annotDict = context.obj(annDictObj);
 
-            // Always generate AP stream so PDF-XChange (and other viewers) show correct colors
+            // Always generate AP stream so other viewers show correct colors
             {
               const rectW = x2 - x1;
               const rectH = Math.abs(y2 - y1);
@@ -849,29 +854,40 @@ export async function savePDF(saveAsPath = null) {
 
 // Save As - prompt for new file path
 export async function savePDFAs() {
-  if (!state.currentPdfPath) {
+  if (!state.pdfDoc) {
     alert('No PDF loaded');
-    return;
+    return false;
   }
 
   if (!isTauri()) {
     alert('Save functionality requires Tauri environment');
-    return;
+    return false;
   }
 
-  const savePath = await saveFileDialog(state.currentPdfPath);
+  // Use current path as default, or the untitled file name
+  const doc = getActiveDocument();
+  const defaultPath = state.currentPdfPath || (doc ? doc.fileName : 'Untitled.pdf');
+
+  const savePath = await saveFileDialog(defaultPath);
 
   if (savePath) {
     const success = await savePDF(savePath);
 
     // If saved to a new path, update the current path and UI
     if (success && savePath !== state.currentPdfPath) {
-      state.currentPdfPath = savePath;
+      // Clean up memory cache if this was an untitled doc
+      if (doc && !state.currentPdfPath) {
+        const memKey = `__memory__${doc.id}`;
+        const { clearCachedPdfBytes } = await import('./loader.js');
+        clearCachedPdfBytes(memKey);
+      }
 
-      // Update window title, tab bar, and file info
+      state.currentPdfPath = savePath;
       updateWindowTitle();
     }
+    return success || false;
   }
+  return false;
 }
 
 // Generate a PDF appearance stream (Form XObject) for an annotation

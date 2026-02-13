@@ -3,6 +3,7 @@ use std::fs::File;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+use tauri::Manager;
 
 // Store the file path passed via command line
 struct OpenedFile(Mutex<Option<String>>);
@@ -220,7 +221,14 @@ pub fn run() {
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        .setup(|_app| {
+        .setup(|app| {
+            // Set the window icon so taskbar matches the title bar icon
+            if let Some(window) = app.get_webview_window("main") {
+                let icon_bytes = include_bytes!("../icons/icon.png");
+                if let Ok(icon) = tauri::image::Image::from_bytes(icon_bytes) {
+                    let _ = window.set_icon(icon);
+                }
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

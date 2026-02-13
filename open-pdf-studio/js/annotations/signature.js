@@ -6,11 +6,14 @@ import { redrawAnnotations, redrawContinuous } from './rendering.js';
 import { updateStatusMessage } from '../ui/chrome/status-bar.js';
 import { generateImageId } from '../utils/helpers.js';
 
-let signatureDialog = null;
 let signatureCanvas = null;
 let signatureCtx = null;
 let isDrawingSignature = false;
-let signaturePath = [];
+let signatureStrokes = [];   // Array of strokes; each stroke is { color, points[] }
+let currentStroke = null;
+let canvasSnapshot = null;   // ImageData saved before each stroke
+let placeX = 0;
+let placeY = 0;
 
 // Saved signatures (stored in localStorage)
 function getSavedSignatures() {
@@ -34,218 +37,107 @@ function deleteSavedSignature(index) {
   localStorage.setItem('pdfEditorSignatures', JSON.stringify(signatures));
 }
 
-// Show signature capture dialog
-export function showSignatureDialog(x, y) {
-  if (signatureDialog) {
-    signatureDialog.remove();
-    signatureDialog = null;
+function hideSignatureDialog() {
+  const overlay = document.getElementById('sig-dialog');
+  if (overlay) {
+    overlay.classList.remove('visible');
+    // Reset position for next open
+    const dialog = overlay.querySelector('.sig-dialog');
+    if (dialog) {
+      dialog.style.left = '50%';
+      dialog.style.top = '50%';
+      dialog.style.transform = 'translate(-50%, -50%)';
+    }
   }
+}
 
-  signatureDialog = document.createElement('div');
-  signatureDialog.style.cssText = `
-    position: fixed;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    background: #ffffff;
-    border: 1px solid #d4d4d4;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-    z-index: 10001;
-    width: 460px;
-    display: flex;
-    flex-direction: column;
-  `;
+export function showSignatureDialog(x, y) {
+  placeX = x;
+  placeY = y;
 
-  // Title bar
-  const titleBar = document.createElement('div');
-  titleBar.style.cssText = `
-    padding: 8px 12px;
-    background: linear-gradient(to bottom, #ffffff, #f5f5f5);
-    border-bottom: 1px solid #d4d4d4;
-    font-weight: bold;
-    font-size: 13px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: default;
-  `;
-  titleBar.textContent = 'Signature';
+  const overlay = document.getElementById('sig-dialog');
+  if (!overlay) return;
 
-  const closeBtn = document.createElement('button');
-  closeBtn.textContent = '\u00D7';
-  closeBtn.style.cssText = `border: none; background: none; font-size: 18px; cursor: pointer; padding: 0 4px; color: #666;`;
-  closeBtn.addEventListener('mouseenter', () => closeBtn.style.color = '#e81123');
-  closeBtn.addEventListener('mouseleave', () => closeBtn.style.color = '#666');
-  closeBtn.addEventListener('click', () => { signatureDialog.remove(); signatureDialog = null; });
-  titleBar.appendChild(closeBtn);
-  signatureDialog.appendChild(titleBar);
-
-  const body = document.createElement('div');
-  body.style.cssText = 'padding: 12px;';
-
-  // Tab bar: Draw | Saved
-  const tabs = document.createElement('div');
-  tabs.style.cssText = 'display: flex; gap: 0; margin-bottom: 8px; border-bottom: 1px solid #ddd;';
-
-  const drawTab = document.createElement('button');
-  drawTab.textContent = 'Draw';
-  drawTab.style.cssText = 'padding: 6px 16px; border: none; background: none; cursor: pointer; font-weight: bold; border-bottom: 2px solid #0078d4; color: #0078d4;';
-
-  const savedTab = document.createElement('button');
-  savedTab.textContent = 'Saved';
-  savedTab.style.cssText = 'padding: 6px 16px; border: none; background: none; cursor: pointer; color: #666;';
-
-  tabs.appendChild(drawTab);
-  tabs.appendChild(savedTab);
-  body.appendChild(tabs);
-
-  // Draw panel
-  const drawPanel = document.createElement('div');
-
-  // Canvas for drawing
-  signatureCanvas = document.createElement('canvas');
-  signatureCanvas.width = 430;
-  signatureCanvas.height = 150;
-  signatureCanvas.style.cssText = 'border: 1px solid #ccc; cursor: crosshair; background: #fff; display: block;';
+  // Reset canvas
+  signatureCanvas = document.getElementById('sig-canvas');
   signatureCtx = signatureCanvas.getContext('2d');
+  signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
   signatureCtx.lineWidth = 2;
   signatureCtx.lineCap = 'round';
   signatureCtx.lineJoin = 'round';
-  signatureCtx.strokeStyle = '#000000';
+  signatureCtx.strokeStyle = document.getElementById('sig-color').value;
+  signatureStrokes = [];
+  currentStroke = null;
 
-  signatureCanvas.addEventListener('mousedown', startSignatureDraw);
-  signatureCanvas.addEventListener('mousemove', continueSignatureDraw);
-  signatureCanvas.addEventListener('mouseup', endSignatureDraw);
-  signatureCanvas.addEventListener('mouseleave', endSignatureDraw);
-
-  drawPanel.appendChild(signatureCanvas);
-
-  // Color and buttons
-  const controls = document.createElement('div');
-  controls.style.cssText = 'display: flex; gap: 8px; margin-top: 8px; align-items: center;';
-
-  const colorLabel = document.createElement('label');
-  colorLabel.textContent = 'Color:';
-  colorLabel.style.cssText = 'font-size: 12px;';
-  const colorInput = document.createElement('input');
-  colorInput.type = 'color';
-  colorInput.value = '#000000';
-  colorInput.style.cssText = 'width: 30px; height: 24px; border: 1px solid #ccc; padding: 0;';
-  colorInput.addEventListener('input', () => { signatureCtx.strokeStyle = colorInput.value; });
-
-  const clearBtn = document.createElement('button');
-  clearBtn.textContent = 'Clear';
-  clearBtn.style.cssText = 'padding: 4px 12px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 12px;';
-  clearBtn.addEventListener('click', () => {
-    signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
-    signaturePath = [];
-  });
-
-  const spacer = document.createElement('div');
-  spacer.style.flex = '1';
-
-  const saveBtn = document.createElement('button');
-  saveBtn.textContent = 'Save & Place';
-  saveBtn.style.cssText = 'padding: 4px 12px; border: 1px solid #0078d4; background: #0078d4; color: #fff; cursor: pointer; font-size: 12px;';
-  saveBtn.addEventListener('click', () => {
-    if (signaturePath.length < 2) { alert('Please draw a signature first.'); return; }
-    const dataUrl = signatureCanvas.toDataURL('image/png');
-    saveSignatureToStorage(dataUrl);
-    placeSignatureFromDataUrl(dataUrl, x, y, colorInput.value);
-    signatureDialog.remove();
-    signatureDialog = null;
-  });
-
-  const placeBtn = document.createElement('button');
-  placeBtn.textContent = 'Place';
-  placeBtn.style.cssText = 'padding: 4px 12px; border: 1px solid #0078d4; background: #fff; color: #0078d4; cursor: pointer; font-size: 12px;';
-  placeBtn.addEventListener('click', () => {
-    if (signaturePath.length < 2) { alert('Please draw a signature first.'); return; }
-    const dataUrl = signatureCanvas.toDataURL('image/png');
-    placeSignatureFromDataUrl(dataUrl, x, y, colorInput.value);
-    signatureDialog.remove();
-    signatureDialog = null;
-  });
-
-  controls.appendChild(colorLabel);
-  controls.appendChild(colorInput);
-  controls.appendChild(clearBtn);
-  controls.appendChild(spacer);
-  controls.appendChild(placeBtn);
-  controls.appendChild(saveBtn);
-  drawPanel.appendChild(controls);
-
-  // Saved panel
-  const savedPanel = document.createElement('div');
+  // Reset to Draw tab
+  const drawTab = document.getElementById('sig-tab-draw');
+  const savedTab = document.getElementById('sig-tab-saved');
+  const drawPanel = document.getElementById('sig-draw-panel');
+  const savedPanel = document.getElementById('sig-saved-panel');
+  drawTab.classList.add('active');
+  savedTab.classList.remove('active');
+  drawPanel.style.display = '';
   savedPanel.style.display = 'none';
 
-  function renderSavedPanel() {
-    savedPanel.innerHTML = '';
-    const signatures = getSavedSignatures();
-    if (signatures.length === 0) {
-      const empty = document.createElement('div');
-      empty.textContent = 'No saved signatures.';
-      empty.style.cssText = 'padding: 20px; text-align: center; color: #888; font-style: italic;';
-      savedPanel.appendChild(empty);
-      return;
-    }
-    const grid = document.createElement('div');
-    grid.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px;';
-    signatures.forEach((sig, idx) => {
-      const wrapper = document.createElement('div');
-      wrapper.style.cssText = 'position: relative; border: 1px solid #ddd; cursor: pointer; padding: 4px;';
-      const img = document.createElement('img');
-      img.src = sig.dataUrl;
-      img.style.cssText = 'width: 120px; height: 50px; object-fit: contain;';
-      wrapper.appendChild(img);
+  overlay.classList.add('visible');
+}
 
-      const delBtn = document.createElement('button');
-      delBtn.textContent = '\u00D7';
-      delBtn.style.cssText = 'position: absolute; top: 2px; right: 2px; border: none; background: rgba(255,0,0,0.7); color: #fff; cursor: pointer; font-size: 12px; width: 16px; height: 16px; padding: 0; line-height: 16px;';
-      delBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteSavedSignature(idx);
-        renderSavedPanel();
-      });
-      wrapper.appendChild(delBtn);
+function renderSavedPanel() {
+  const savedPanel = document.getElementById('sig-saved-panel');
+  if (!savedPanel) return;
 
-      wrapper.addEventListener('click', () => {
-        placeSignatureFromDataUrl(sig.dataUrl, x, y, '#000000');
-        signatureDialog.remove();
-        signatureDialog = null;
-      });
-      grid.appendChild(wrapper);
-    });
-    savedPanel.appendChild(grid);
+  savedPanel.innerHTML = '';
+  const signatures = getSavedSignatures();
+
+  if (signatures.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'sig-saved-empty';
+    empty.textContent = 'No saved signatures.';
+    savedPanel.appendChild(empty);
+    return;
   }
 
-  // Tab switching
-  drawTab.addEventListener('click', () => {
-    drawPanel.style.display = '';
-    savedPanel.style.display = 'none';
-    drawTab.style.borderBottom = '2px solid #0078d4';
-    drawTab.style.color = '#0078d4';
-    drawTab.style.fontWeight = 'bold';
-    savedTab.style.borderBottom = 'none';
-    savedTab.style.color = '#666';
-    savedTab.style.fontWeight = 'normal';
-  });
-  savedTab.addEventListener('click', () => {
-    drawPanel.style.display = 'none';
-    savedPanel.style.display = '';
-    savedTab.style.borderBottom = '2px solid #0078d4';
-    savedTab.style.color = '#0078d4';
-    savedTab.style.fontWeight = 'bold';
-    drawTab.style.borderBottom = 'none';
-    drawTab.style.color = '#666';
-    drawTab.style.fontWeight = 'normal';
-    renderSavedPanel();
+  const grid = document.createElement('div');
+  grid.className = 'sig-saved-grid';
+
+  signatures.forEach((sig, idx) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'sig-saved-item';
+
+    const img = document.createElement('img');
+    img.src = sig.dataUrl;
+    wrapper.appendChild(img);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'sig-saved-del';
+    delBtn.textContent = '\u00D7';
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteSavedSignature(idx);
+      renderSavedPanel();
+    });
+    wrapper.appendChild(delBtn);
+
+    wrapper.addEventListener('click', () => {
+      placeSignatureFromDataUrl(sig.dataUrl, placeX, placeY, '#000000');
+      hideSignatureDialog();
+    });
+
+    grid.appendChild(wrapper);
   });
 
-  body.appendChild(drawPanel);
-  body.appendChild(savedPanel);
-  signatureDialog.appendChild(body);
-  document.body.appendChild(signatureDialog);
+  savedPanel.appendChild(grid);
+}
+
+function drawStroke(stroke) {
+  if (stroke.points.length < 2) return;
+  signatureCtx.strokeStyle = stroke.color;
+  signatureCtx.beginPath();
+  signatureCtx.moveTo(stroke.points[0].x, stroke.points[0].y);
+  for (let i = 1; i < stroke.points.length; i++) {
+    signatureCtx.lineTo(stroke.points[i].x, stroke.points[i].y);
+  }
+  signatureCtx.stroke();
 }
 
 function startSignatureDraw(e) {
@@ -253,23 +145,86 @@ function startSignatureDraw(e) {
   const rect = signatureCanvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
-  signatureCtx.beginPath();
-  signatureCtx.moveTo(x, y);
-  signaturePath.push({ x, y });
+  currentStroke = { color: signatureCtx.strokeStyle, points: [{ x, y }] };
+  canvasSnapshot = signatureCtx.getImageData(0, 0, signatureCanvas.width, signatureCanvas.height);
 }
 
 function continueSignatureDraw(e) {
-  if (!isDrawingSignature) return;
+  if (!isDrawingSignature || !currentStroke) return;
   const rect = signatureCanvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
-  signatureCtx.lineTo(x, y);
-  signatureCtx.stroke();
-  signaturePath.push({ x, y });
+  currentStroke.points.push({ x, y });
+  // Restore snapshot and redraw full current stroke as one path
+  signatureCtx.putImageData(canvasSnapshot, 0, 0);
+  drawStroke(currentStroke);
 }
 
 function endSignatureDraw() {
+  if (isDrawingSignature && currentStroke && currentStroke.points.length > 1) {
+    signatureStrokes.push(currentStroke);
+  }
+  currentStroke = null;
+  canvasSnapshot = null;
   isDrawingSignature = false;
+}
+
+function redrawSignatureCanvas() {
+  signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+  signatureCtx.lineWidth = 2;
+  signatureCtx.lineCap = 'round';
+  signatureCtx.lineJoin = 'round';
+  for (const stroke of signatureStrokes) {
+    drawStroke(stroke);
+  }
+}
+
+function undoLastStroke() {
+  if (signatureStrokes.length === 0) return;
+  signatureStrokes.pop();
+  redrawSignatureCanvas();
+}
+
+// Crop canvas to the bounding box of drawn pixels (with padding)
+function getCroppedDataUrl(canvas) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const data = imageData.data;
+
+  let minX = w, minY = h, maxX = 0, maxY = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const alpha = data[(y * w + x) * 4 + 3];
+      if (alpha > 0) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+
+  // Nothing drawn — return full canvas
+  if (maxX < minX || maxY < minY) return canvas.toDataURL('image/png');
+
+  const pad = 4;
+  minX = Math.max(0, minX - pad);
+  minY = Math.max(0, minY - pad);
+  maxX = Math.min(w - 1, maxX + pad);
+  maxY = Math.min(h - 1, maxY + pad);
+
+  const cropW = maxX - minX + 1;
+  const cropH = maxY - minY + 1;
+
+  const cropCanvas = document.createElement('canvas');
+  cropCanvas.width = cropW;
+  cropCanvas.height = cropH;
+  const cropCtx = cropCanvas.getContext('2d');
+  cropCtx.drawImage(canvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+
+  return cropCanvas.toDataURL('image/png');
 }
 
 // Place signature as image annotation
@@ -322,4 +277,130 @@ async function placeSignatureFromDataUrl(dataUrl, x, y, color) {
   }
 
   updateStatusMessage('Signature placed');
+}
+
+export function initSignatureDialog() {
+  const overlay = document.getElementById('sig-dialog');
+  if (!overlay) return;
+
+  const dialog = overlay.querySelector('.sig-dialog');
+  const header = overlay.querySelector('.sig-header');
+  const closeBtn = document.getElementById('sig-close-btn');
+  const drawTab = document.getElementById('sig-tab-draw');
+  const savedTab = document.getElementById('sig-tab-saved');
+  const drawPanel = document.getElementById('sig-draw-panel');
+  const savedPanel = document.getElementById('sig-saved-panel');
+  const colorInput = document.getElementById('sig-color');
+  const clearBtn = document.getElementById('sig-clear-btn');
+  const placeBtn = document.getElementById('sig-place-btn');
+  const savePlaceBtn = document.getElementById('sig-save-place-btn');
+  signatureCanvas = document.getElementById('sig-canvas');
+
+  // Close button
+  closeBtn.addEventListener('click', hideSignatureDialog);
+
+  // Keyboard shortcuts when dialog is open
+  document.addEventListener('keydown', (e) => {
+    if (!overlay.classList.contains('visible')) return;
+    if (e.key === 'Escape') {
+      hideSignatureDialog();
+      return;
+    }
+    // Ctrl+Z: undo last stroke (prevent global undo)
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      e.preventDefault();
+      e.stopPropagation();
+      undoLastStroke();
+    }
+  }, true);
+
+  // Tab switching
+  drawTab.addEventListener('click', () => {
+    drawTab.classList.add('active');
+    savedTab.classList.remove('active');
+    drawPanel.style.display = '';
+    savedPanel.style.display = 'none';
+  });
+
+  savedTab.addEventListener('click', () => {
+    savedTab.classList.add('active');
+    drawTab.classList.remove('active');
+    savedPanel.style.display = '';
+    drawPanel.style.display = 'none';
+    renderSavedPanel();
+  });
+
+  // Canvas drawing
+  signatureCanvas.addEventListener('mousedown', startSignatureDraw);
+  signatureCanvas.addEventListener('mousemove', continueSignatureDraw);
+  signatureCanvas.addEventListener('mouseup', endSignatureDraw);
+  signatureCanvas.addEventListener('mouseleave', endSignatureDraw);
+
+  // Color picker
+  colorInput.addEventListener('input', () => {
+    if (signatureCtx) signatureCtx.strokeStyle = colorInput.value;
+  });
+
+  // Clear button
+  clearBtn.addEventListener('click', () => {
+    if (signatureCtx && signatureCanvas) {
+      signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+      signatureStrokes = [];
+      currentStroke = null;
+    }
+  });
+
+  // Place button
+  placeBtn.addEventListener('click', () => {
+    if (signatureStrokes.length === 0) { alert('Please draw a signature first.'); return; }
+    const dataUrl = getCroppedDataUrl(signatureCanvas);
+    placeSignatureFromDataUrl(dataUrl, placeX, placeY, colorInput.value);
+    hideSignatureDialog();
+  });
+
+  // Save & Place button
+  savePlaceBtn.addEventListener('click', () => {
+    if (signatureStrokes.length === 0) { alert('Please draw a signature first.'); return; }
+    const dataUrl = getCroppedDataUrl(signatureCanvas);
+    saveSignatureToStorage(dataUrl);
+    placeSignatureFromDataUrl(dataUrl, placeX, placeY, colorInput.value);
+    hideSignatureDialog();
+  });
+
+  // Draggable header
+  let isDragging = false;
+  let dragOffsetX = 0;
+  let dragOffsetY = 0;
+
+  header.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.sig-close-btn')) return;
+    isDragging = true;
+    const rect = dialog.getBoundingClientRect();
+    dragOffsetX = e.clientX - rect.left;
+    dragOffsetY = e.clientY - rect.top;
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const overlayRect = overlay.getBoundingClientRect();
+    let newX = e.clientX - overlayRect.left - dragOffsetX;
+    let newY = e.clientY - overlayRect.top - dragOffsetY;
+
+    const dialogRect = dialog.getBoundingClientRect();
+    const maxX = overlayRect.width - dialogRect.width;
+    const maxY = overlayRect.height - dialogRect.height;
+
+    newX = Math.max(0, Math.min(newX, maxX));
+    newY = Math.max(0, Math.min(newY, maxY));
+
+    dialog.style.left = newX + 'px';
+    dialog.style.top = newY + 'px';
+    dialog.style.transform = 'none';
+    dialog.style.position = 'absolute';
+  });
+
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+  });
 }

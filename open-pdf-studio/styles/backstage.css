@@ -1,7 +1,10 @@
 /* Backstage Overlay */
 .backstage-overlay {
   position: fixed;
-  inset: 0;
+  top: 30px;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 1000;
   display: none;
   flex-direction: row;
@@ -69,6 +72,17 @@
 .backstage-item:hover {
   background: var(--theme-backstage-item-hover);
   color: var(--theme-backstage-item-hover-text);
+}
+
+.backstage-item.active {
+  background: var(--theme-backstage-item-hover);
+  color: var(--theme-backstage-item-hover-text);
+  border-left: 3px solid #3b82f6;
+  padding-left: 17px;
+}
+
+.backstage-item.active .backstage-item-icon svg {
+  stroke: var(--theme-backstage-item-hover-text);
 }
 
 .backstage-item-icon {

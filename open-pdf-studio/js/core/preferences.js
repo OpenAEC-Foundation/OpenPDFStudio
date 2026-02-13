@@ -39,14 +39,54 @@ function getSystemUsername() {
   }
 }
 
+// Resolve the effective theme (handles "system" by detecting OS preference)
+function resolveTheme(themeName) {
+  if (themeName === 'system') {
+    return getSystemTheme();
+  }
+  return themeName;
+}
+
+// Detect OS theme using Tauri native API first, CSS media query as fallback
+function getSystemTheme() {
+  try {
+    const win = window.__TAURI__?.window;
+    if (win) {
+      const theme = win.getCurrentWindow().theme();
+      if (theme) return theme === 'dark' ? 'dark' : 'light';
+    }
+  } catch (e) { /* fall through */ }
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
 // Apply theme to the document
 export function applyTheme(themeName) {
-  document.documentElement.setAttribute('data-theme', themeName);
+  const effectiveTheme = resolveTheme(themeName);
+  document.documentElement.setAttribute('data-theme', effectiveTheme);
   const themeSelect = document.getElementById('theme-select');
   if (themeSelect && themeSelect.value !== themeName) {
     themeSelect.value = themeName;
   }
 }
+
+// Listen for OS theme changes (applies when user has "System" selected)
+// Tauri native listener
+try {
+  const win = window.__TAURI__?.window;
+  if (win) {
+    win.getCurrentWindow().onThemeChanged(({ payload }) => {
+      if (state.preferences.theme === 'system') {
+        applyTheme('system');
+      }
+    });
+  }
+} catch (e) { /* ignore */ }
+// CSS fallback listener
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (state.preferences.theme === 'system') {
+    applyTheme('system');
+  }
+});
 
 // Apply preferences to the application
 export function applyPreferences() {
@@ -121,6 +161,15 @@ export function showPreferencesDialog(tabName = 'general') {
   // Populate form with current values
   const prefs = state.preferences;
 
+  // General tab
+  const prefThemeSelect = document.getElementById('pref-theme-select');
+  if (prefThemeSelect) prefThemeSelect.value = prefs.theme || 'system';
+  const restoreSessionGeneral = document.getElementById('pref-restore-session-general');
+  if (restoreSessionGeneral) restoreSessionGeneral.checked = prefs.restoreLastSession;
+  const authorNameGeneral = document.getElementById('pref-author-name-general');
+  if (authorNameGeneral) authorNameGeneral.value = prefs.authorName;
+
+  // Behavior tab (keep in sync with General)
   document.getElementById('pref-author-name').value = prefs.authorName;
   document.getElementById('pref-angle-snap').value = prefs.angleSnapDegrees;
   document.getElementById('pref-enable-angle-snap').checked = prefs.enableAngleSnap;
@@ -303,7 +352,24 @@ export function hidePreferencesDialog() {
 export function savePreferencesFromDialog() {
   const prefs = state.preferences;
 
-  prefs.authorName = document.getElementById('pref-author-name').value || 'User';
+  // General tab values (take priority over Behavior tab duplicates)
+  const prefThemeSelect = document.getElementById('pref-theme-select');
+  if (prefThemeSelect) {
+    prefs.theme = prefThemeSelect.value;
+    applyTheme(prefs.theme);
+    // Keep ribbon theme selector in sync
+    const ribbonThemeSelect = document.getElementById('theme-select');
+    if (ribbonThemeSelect) ribbonThemeSelect.value = prefs.theme;
+  }
+  const authorGeneral = document.getElementById('pref-author-name-general');
+  if (authorGeneral) prefs.authorName = authorGeneral.value || 'User';
+  const restoreGeneral = document.getElementById('pref-restore-session-general');
+  if (restoreGeneral) prefs.restoreLastSession = restoreGeneral.checked;
+
+  // Behavior tab (sync back from General)
+  document.getElementById('pref-author-name').value = prefs.authorName;
+  document.getElementById('pref-restore-session').checked = prefs.restoreLastSession;
+
   prefs.angleSnapDegrees = parseInt(document.getElementById('pref-angle-snap').value) || 30;
   prefs.enableAngleSnap = document.getElementById('pref-enable-angle-snap').checked;
   prefs.gridSize = parseInt(document.getElementById('pref-grid-size').value) || 10;

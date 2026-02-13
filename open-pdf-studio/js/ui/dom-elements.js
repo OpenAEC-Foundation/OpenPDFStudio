@@ -14,9 +14,6 @@ export const canvasContainer = document.getElementById('canvas-container');
 export const loadingOverlay = document.getElementById('loading-overlay');
 export const loadingText = loadingOverlay?.querySelector('.loading-text');
 
-// About dialog
-export const aboutDialog = document.getElementById('about-dialog');
-
 // Page navigation
 export const pageInfo = document.getElementById('page-info');
 export const pageInput = document.getElementById('page-input');

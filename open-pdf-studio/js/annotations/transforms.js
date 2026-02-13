@@ -313,6 +313,8 @@ export function applyResize(annotation, handleType, deltaX, deltaY, originalAnn,
       break;
 
     case 'image':
+    case 'stamp':
+    case 'signature':
       // Maintain aspect ratio when shift is held
       const aspectRatio = originalAnn.originalWidth / originalAnn.originalHeight;
 
@@ -511,6 +513,8 @@ export function applyMove(annotation, deltaX, deltaY) {
       break;
 
     case 'image':
+    case 'stamp':
+    case 'signature':
       annotation.x += deltaX;
       annotation.y += deltaY;
       break;
@@ -553,7 +557,7 @@ export function applyRotation(annotation, mouseX, mouseY, originalAnn) {
   if (annotation.locked) return;
 
   // Supported types for rotation
-  const rotationTypes = ['image', 'comment', 'box', 'circle', 'highlight', 'polygon', 'cloud', 'textbox'];
+  const rotationTypes = ['image', 'stamp', 'signature', 'comment', 'box', 'circle', 'highlight', 'polygon', 'cloud', 'textbox'];
   if (!rotationTypes.includes(annotation.type)) return;
 
   // Calculate center of annotation

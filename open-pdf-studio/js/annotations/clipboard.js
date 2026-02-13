@@ -142,8 +142,8 @@ export function pasteAnnotation() {
   newAnnotation.createdAt = new Date().toISOString();
   newAnnotation.modifiedAt = new Date().toISOString();
 
-  // For images, need to copy the cached image
-  if (newAnnotation.type === 'image') {
+  // For images/signatures, need to copy the cached image
+  if (newAnnotation.type === 'image' || newAnnotation.type === 'signature') {
     const newImageId = generateImageId();
     const originalImg = state.imageCache.get(state.clipboardAnnotation.imageId);
     if (originalImg) {
@@ -214,7 +214,7 @@ export function pasteAnnotations() {
     newAnn.createdAt = new Date().toISOString();
     newAnn.modifiedAt = new Date().toISOString();
 
-    if (newAnn.type === 'image') {
+    if (newAnn.type === 'image' || newAnn.type === 'signature') {
       const newImageId = generateImageId();
       const originalImg = state.imageCache.get(source.imageId);
       if (originalImg) state.imageCache.set(newImageId, originalImg);

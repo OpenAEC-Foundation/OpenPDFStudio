@@ -97,6 +97,26 @@ export async function saveFileDialog(defaultPath, filters) {
   return null;
 }
 
+// Folder picker dialog
+export async function openFolderDialog(title) {
+  if (!isTauri()) return null;
+
+  if (window.__TAURI__.dialog) {
+    try {
+      const result = await window.__TAURI__.dialog.open({
+        directory: true,
+        multiple: false,
+        title: title || 'Select Folder'
+      });
+      return result;
+    } catch (e) {
+      console.error('Dialog plugin error:', e);
+    }
+  }
+
+  return null;
+}
+
 // File system operations
 export async function readBinaryFile(path) {
   if (!isTauri()) return null;

@@ -1,10 +1,10 @@
-import { state } from '../core/state.js';
+import { state, getNextUntitledName } from '../core/state.js';
 import { placeholder, pdfContainer, fileInfo } from '../ui/dom-elements.js';
 import { showLoading, hideLoading } from '../ui/chrome/dialogs.js';
 import { updateAllStatus } from '../ui/chrome/status-bar.js';
 import { setViewMode } from './renderer.js';
 import { generateThumbnails, refreshActiveTab } from '../ui/panels/left-panel.js';
-import { createTab, updateWindowTitle } from '../ui/chrome/tabs.js';
+import { createTab, updateWindowTitle, markDocumentModified } from '../ui/chrome/tabs.js';
 import * as pdfjsLib from 'pdfjs-dist';
 import { isTauri, readBinaryFile, openFileDialog, lockFile } from '../core/platform.js';
 import { PDFDocument } from 'pdf-lib';
@@ -134,6 +134,71 @@ export async function openPDFFile() {
     }
   } catch (error) {
     console.error('Error opening file dialog:', error);
+  }
+}
+
+// Create a new blank PDF document
+export async function createBlankPDF(widthPt, heightPt, numPages) {
+  try {
+    showLoading('Creating document...');
+
+    // Create blank PDF using pdf-lib
+    const pdfDocLib = await PDFDocument.create();
+    for (let i = 0; i < numPages; i++) {
+      pdfDocLib.addPage([widthPt, heightPt]);
+    }
+    const pdfBytes = await pdfDocLib.save();
+    const typedArray = new Uint8Array(pdfBytes);
+
+    // Generate untitled name and create tab
+    const fileName = getNextUntitledName();
+    const doc = createTab(null);
+    doc.fileName = fileName;
+
+    // Cache bytes under a memory key for saving later
+    const memoryKey = `__memory__${doc.id}`;
+    originalBytesCache.set(memoryKey, typedArray.slice());
+
+    // Load into pdf.js for viewing
+    state.pdfDoc = await pdfjsLib.getDocument({
+      data: typedArray,
+      cMapUrl: '/pdfjs/web/cmaps/',
+      cMapPacked: true,
+      standardFontDataUrl: '/pdfjs/web/standard_fonts/',
+      isEvalSupported: false,
+    }).promise;
+
+    // Reset annotation storage and state
+    resetAnnotationStorage();
+    state.annotations = [];
+    if (doc) { doc.undoStack = []; doc.redoStack = []; }
+    state.selectedAnnotation = null;
+    state.currentPage = 1;
+
+    // Show PDF container, hide placeholder
+    placeholder.style.display = 'none';
+    pdfContainer.classList.add('visible');
+
+    const pdfControls = document.getElementById('pdf-controls');
+    if (pdfControls) pdfControls.style.display = 'flex';
+
+    fileInfo.textContent = fileName;
+
+    // Mark as modified so Ctrl+S will trigger Save As
+    markDocumentModified();
+
+    // Render
+    await setViewMode(state.viewMode);
+    generateThumbnails();
+    refreshActiveTab();
+    updateAllStatus();
+    updateWindowTitle();
+
+  } catch (error) {
+    console.error('Error creating blank PDF:', error);
+    alert('Failed to create document: ' + error.message);
+  } finally {
+    hideLoading();
   }
 }
 

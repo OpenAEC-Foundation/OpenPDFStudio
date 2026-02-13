@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +8,14 @@
   <link rel="stylesheet" href="styles.css">
   <script>
     try { const p = JSON.parse(localStorage.getItem('pdfEditorPreferences') || '{}');
-      if (p.theme) document.documentElement.setAttribute('data-theme', p.theme);
+      if (p.theme) {
+        let t = p.theme;
+        if (t === 'system') {
+          try { t = window.__TAURI__?.window?.getCurrentWindow()?.theme() === 'dark' ? 'dark' : 'light'; }
+          catch(e2) { t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      }
     } catch(e) {}
   </script>
 </head>
@@ -538,7 +545,7 @@
               </div>
               <span class="ribbon-btn-label">Single</span>
             </button>
-            <button class="ribbon-btn" id="continuous" title="Continuous">
+            <button class="ribbon-btn" id="continuous" title="Continuous (coming soon)" disabled style="opacity: 0.4; cursor: default;">
               <div class="ribbon-btn-icon">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -658,8 +665,9 @@
             <div class="ribbon-input-group" style="justify-content: center;">
               <label class="ribbon-input-label" for="theme-select">Theme</label>
               <select class="ribbon-input" id="theme-select" style="width: 110px;">
-                <option value="dark">Dark</option>
+                <option value="system">System</option>
                 <option value="light">Light</option>
+                <option value="dark">Dark</option>
                 <option value="blue">Blue</option>
                 <option value="highContrast">High Contrast</option>
               </select>
@@ -2268,6 +2276,113 @@
     </div>
   </div>
 
+  <!-- New Document Dialog -->
+  <div class="new-doc-overlay" id="new-doc-dialog">
+    <div class="new-doc-dialog">
+      <div class="new-doc-header">
+        <h2>New Document</h2>
+        <button class="new-doc-close-btn" id="new-doc-close-btn">&times;</button>
+      </div>
+      <div class="new-doc-content">
+        <div class="new-doc-form">
+          <div class="new-doc-row">
+            <label class="new-doc-label">Paper Size:</label>
+            <select id="new-doc-paper-size" class="new-doc-select">
+              <optgroup label="ISO A Series">
+                <option value="a0">A0 (841 x 1189 mm)</option>
+                <option value="a1">A1 (594 x 841 mm)</option>
+                <option value="a2">A2 (420 x 594 mm)</option>
+                <option value="a3">A3 (297 x 420 mm)</option>
+                <option value="a4" selected>A4 (210 x 297 mm)</option>
+                <option value="a5">A5 (148 x 210 mm)</option>
+                <option value="a6">A6 (105 x 148 mm)</option>
+              </optgroup>
+              <optgroup label="ISO B Series">
+                <option value="b3">B3 (353 x 500 mm)</option>
+                <option value="b4">B4 (250 x 353 mm)</option>
+                <option value="b5">B5 (176 x 250 mm)</option>
+              </optgroup>
+              <optgroup label="North American">
+                <option value="letter">Letter (8.5 x 11 in)</option>
+                <option value="legal">Legal (8.5 x 14 in)</option>
+                <option value="tabloid">Tabloid (11 x 17 in)</option>
+                <option value="ledger">Ledger (17 x 11 in)</option>
+              </optgroup>
+              <optgroup label="Other">
+                <option value="custom">Custom...</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="new-doc-row new-doc-custom-row" id="new-doc-custom-row" style="display:none;">
+            <label class="new-doc-label">Width (mm):</label>
+            <input type="number" id="new-doc-custom-width" class="new-doc-input" value="210" min="10" max="5000" step="1">
+            <label class="new-doc-label new-doc-label-inline">Height (mm):</label>
+            <input type="number" id="new-doc-custom-height" class="new-doc-input" value="297" min="10" max="5000" step="1">
+          </div>
+          <div class="new-doc-row">
+            <label class="new-doc-label">Orientation:</label>
+            <div class="new-doc-radio-group">
+              <label class="new-doc-radio-label">
+                <input type="radio" name="new-doc-orientation" value="portrait" checked> Portrait
+              </label>
+              <label class="new-doc-radio-label">
+                <input type="radio" name="new-doc-orientation" value="landscape"> Landscape
+              </label>
+            </div>
+          </div>
+          <div class="new-doc-row">
+            <label class="new-doc-label">Pages:</label>
+            <input type="number" id="new-doc-pages" class="new-doc-input" value="1" min="1" max="999" step="1">
+          </div>
+        </div>
+        <div class="new-doc-preview-area">
+          <div class="new-doc-preview-box" id="new-doc-preview-box">
+            <div class="new-doc-preview-page" id="new-doc-preview-page"></div>
+          </div>
+          <div class="new-doc-preview-text" id="new-doc-preview-text">210 x 297 mm (A4)</div>
+        </div>
+      </div>
+      <div class="new-doc-footer">
+        <div></div>
+        <div class="new-doc-footer-right">
+          <button class="pref-btn pref-btn-primary" id="new-doc-ok-btn">OK</button>
+          <button class="pref-btn pref-btn-secondary" id="new-doc-cancel-btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Signature Dialog -->
+  <div class="sig-overlay" id="sig-dialog">
+    <div class="sig-dialog">
+      <div class="sig-header">
+        <h2>Signature</h2>
+        <button class="sig-close-btn" id="sig-close-btn">&times;</button>
+      </div>
+      <div class="sig-content">
+        <div class="sig-tabs">
+          <button class="sig-tab active" id="sig-tab-draw">Draw</button>
+          <button class="sig-tab" id="sig-tab-saved">Saved</button>
+        </div>
+        <div class="sig-draw-panel" id="sig-draw-panel">
+          <canvas id="sig-canvas" width="430" height="150"></canvas>
+        </div>
+        <div class="sig-saved-panel" id="sig-saved-panel" style="display:none;"></div>
+      </div>
+      <div class="sig-footer">
+        <div class="sig-footer-left">
+          <label class="sig-color-label">Color:</label>
+          <input type="color" id="sig-color" class="sig-color-input" value="#000000">
+        </div>
+        <div class="sig-footer-right">
+          <button class="pref-btn pref-btn-secondary" id="sig-clear-btn">Clear</button>
+          <button class="pref-btn pref-btn-secondary" id="sig-place-btn" style="color:#0078d4; border-color:#0078d4;">Place</button>
+          <button class="pref-btn pref-btn-primary" id="sig-save-place-btn">Save &amp; Place</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Preferences Dialog -->
   <div class="preferences-overlay" id="preferences-dialog">
     <div class="preferences-dialog">
@@ -2289,7 +2404,37 @@
 
         <!-- General Tab -->
         <div class="pref-tab-content active" id="pref-tab-general">
-          <!-- Reserved for future general settings -->
+          <div class="preferences-section">
+            <h3>Theme</h3>
+            <div class="pref-row">
+              <label for="pref-theme-select">Application Theme</label>
+              <select id="pref-theme-select" style="width: 120px;">
+                <option value="system">System</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="blue">Blue</option>
+                <option value="highContrast">High Contrast</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="preferences-section">
+            <h3>Startup</h3>
+            <div class="pref-row pref-checkbox-row">
+              <label class="pref-checkbox-label">
+                <input type="checkbox" id="pref-restore-session-general">
+                <span>Restore last session when application starts</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="preferences-section">
+            <h3>Author</h3>
+            <div class="pref-row">
+              <label for="pref-author-name-general">Default Author Name</label>
+              <input type="text" id="pref-author-name-general" value="User">
+            </div>
+          </div>
         </div>
 
         <!-- Annotations Tab (TextBox & Callout) -->
@@ -3602,58 +3747,6 @@
   </div>
 
   <!-- About Dialog -->
-  <div class="about-overlay" id="about-dialog">
-    <div class="about-dialog">
-      <div class="about-header">
-        <button class="about-close-btn" id="about-close-btn">&times;</button>
-        <div class="about-logo">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M14 2V8H20" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M16 13H8" stroke="#764ba2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M16 17H8" stroke="#764ba2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M10 9H9H8" stroke="#764ba2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <h1 class="about-app-name">OpenPDFStudio</h1>
-        <p class="about-version" id="about-version">Version</p>
-      </div>
-      <div class="about-content">
-        <p class="about-tagline">IT Without Chains</p>
-        <p class="about-description">
-          A professional PDF editor for viewing, annotating, and editing PDF documents.
-          Built with open source technologies.
-        </p>
-        <div class="about-company">
-          <h3 class="about-company-name">OpenAEC Foundation</h3>
-          <p class="about-company-desc">
-            From the Latin "to share and distribute" - we liberate businesses from vendor lock-in
-            through professional open source solutions. Transparent pricing, transparent code.
-          </p>
-        </div>
-        <div class="about-links">
-          <a href="#" class="about-link" id="about-website-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-            </svg>
-            Website
-          </a>
-          <a href="#" class="about-link" id="about-email-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-              <polyline points="22,6 12,13 2,6"/>
-            </svg>
-            Contact
-          </a>
-        </div>
-        <div class="about-footer">
-          <p class="about-copyright">&copy; 2025 OpenAEC Foundation. Licensed under MIT.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Loading Overlay -->
   <div id="loading-overlay" class="loading-overlay">
     <div class="loading-content">
@@ -3672,6 +3765,17 @@
         <span>File</span>
       </button>
       <div class="backstage-items">
+        <button class="backstage-item" id="bs-new">
+          <span class="backstage-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <path d="M14 2v6h6"/>
+              <path d="M12 18v-6m-3 3h6"/>
+            </svg>
+          </span>
+          <span class="backstage-item-label">New</span>
+          <span class="backstage-item-shortcut">Ctrl+N</span>
+        </button>
         <button class="backstage-item" id="bs-open">
           <span class="backstage-item-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -3702,6 +3806,29 @@
           </span>
           <span class="backstage-item-label">Save As...</span>
           <span class="backstage-item-shortcut">Ctrl+Shift+S</span>
+        </button>
+        <div class="backstage-divider"></div>
+        <button class="backstage-item" id="bs-import">
+          <span class="backstage-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          </span>
+          <span class="backstage-item-label">Import</span>
+          <span class="backstage-item-shortcut"></span>
+        </button>
+        <button class="backstage-item" id="bs-export">
+          <span class="backstage-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </span>
+          <span class="backstage-item-label">Export</span>
+          <span class="backstage-item-shortcut"></span>
         </button>
         <div class="backstage-divider"></div>
         <button class="backstage-item" id="bs-doc-properties">
@@ -3753,6 +3880,136 @@
       </div>
     </div>
     <div class="backstage-content" id="backstage-content">
+      <!-- About Panel -->
+      <div class="bs-about-panel" id="bs-about-panel" style="display: none;">
+        <h2 class="bs-about-title">About</h2>
+        <div class="bs-about-app">
+          <div class="bs-about-logo">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M14 2V8H20" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 13H8" stroke="#764ba2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 17H8" stroke="#764ba2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10 9H9H8" stroke="#764ba2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="bs-about-app-info">
+            <h1 class="bs-about-app-name">OpenPDFStudio</h1>
+            <p class="bs-about-version" id="bs-about-version">Version</p>
+          </div>
+        </div>
+        <p class="bs-about-tagline">IT Without Chains</p>
+        <p class="bs-about-description">
+          A professional PDF editor for viewing, annotating, and editing PDF documents.
+          Built with open source technologies.
+        </p>
+        <div class="bs-about-company">
+          <h3 class="bs-about-company-name">OpenAEC Foundation</h3>
+          <p class="bs-about-company-desc">
+            From the Latin "to share and distribute" - we liberate businesses from vendor lock-in
+            through professional open source solutions. Transparent pricing, transparent code.
+          </p>
+        </div>
+        <div class="bs-about-links">
+          <a href="#" class="bs-about-link" id="bs-about-website-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            Website
+          </a>
+          <a href="#" class="bs-about-link" id="bs-about-email-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            Contact
+          </a>
+        </div>
+        <div class="bs-about-footer">
+          <p class="bs-about-copyright">&copy; 2025 OpenAEC Foundation. Licensed under MIT.</p>
+        </div>
+      </div>
+
+      <!-- Export Panel -->
+      <div class="bs-export-panel" id="bs-export-panel" style="display: none;">
+        <h2 class="bs-export-title">Export</h2>
+
+        <div class="bs-export-cards">
+          <!-- Export as Images card -->
+          <div class="bs-export-card" id="bs-export-images-card">
+            <div class="bs-export-card-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+            </div>
+            <div class="bs-export-card-info">
+              <h3>Export as Images</h3>
+              <p>Save pages as PNG or JPEG image files</p>
+            </div>
+          </div>
+
+          <!-- Export as Raster PDF card -->
+          <div class="bs-export-card" id="bs-export-raster-card">
+            <div class="bs-export-card-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <path d="M14 2v6h6"/>
+                <rect x="8" y="13" width="8" height="5" rx="0"/>
+              </svg>
+            </div>
+            <div class="bs-export-card-info">
+              <h3>Export as Raster PDF</h3>
+              <p>Flatten pages and annotations into a new PDF with rasterized images</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Export Options (shown after selecting a card) -->
+        <div class="bs-export-options" id="bs-export-options" style="display: none;">
+          <h3 class="bs-export-options-title" id="bs-export-options-title">Options</h3>
+
+          <div class="bs-export-option-group">
+            <label class="bs-export-option-label">Page Range</label>
+            <div class="bs-export-radio-group">
+              <label class="bs-export-radio"><input type="radio" name="bs-export-page-range" value="all" checked> All pages</label>
+              <label class="bs-export-radio"><input type="radio" name="bs-export-page-range" value="current"> Current page</label>
+              <label class="bs-export-radio"><input type="radio" name="bs-export-page-range" value="custom"> Custom:</label>
+            </div>
+            <input type="text" class="bs-export-input" id="bs-export-custom-pages" placeholder="e.g. 1-5, 8, 11-13" disabled>
+          </div>
+
+          <div class="bs-export-option-group" id="bs-export-format-group">
+            <label class="bs-export-option-label">Format</label>
+            <select id="bs-export-format" class="bs-export-select">
+              <option value="png">PNG</option>
+              <option value="jpeg">JPEG</option>
+            </select>
+          </div>
+
+          <div class="bs-export-option-group" id="bs-export-quality-group" style="display: none;">
+            <label class="bs-export-option-label">JPEG Quality</label>
+            <div class="bs-export-range-row">
+              <input type="range" id="bs-export-quality" min="10" max="100" value="92" class="bs-export-range">
+              <span id="bs-export-quality-value" class="bs-export-range-value">92%</span>
+            </div>
+          </div>
+
+          <div class="bs-export-option-group">
+            <label class="bs-export-option-label">Resolution</label>
+            <select id="bs-export-dpi" class="bs-export-select">
+              <option value="72">72 DPI (Screen)</option>
+              <option value="150" selected>150 DPI</option>
+              <option value="300">300 DPI (Print)</option>
+              <option value="600">600 DPI (High Quality)</option>
+            </select>
+          </div>
+
+          <button class="bs-export-btn" id="bs-export-go-btn">Export</button>
+        </div>
+      </div>
     </div>
   </div>
 

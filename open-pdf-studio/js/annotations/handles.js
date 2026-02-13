@@ -28,6 +28,8 @@ function getAnnotationCenter(annotation) {
     case 'cloud':
     case 'textbox':
     case 'image':
+    case 'stamp':
+    case 'signature':
     case 'redaction':
       return {
         x: annotation.x + annotation.width / 2,
@@ -196,6 +198,8 @@ export function getAnnotationHandles(annotation, scale = 1) {
       break;
 
     case 'image':
+    case 'stamp':
+    case 'signature':
       // Corner handles for resize
       handles.push({ type: HANDLE_TYPES.TOP_LEFT, x: annotation.x - hs/2, y: annotation.y - hs/2 });
       handles.push({ type: HANDLE_TYPES.TOP_RIGHT, x: annotation.x + annotation.width - hs/2, y: annotation.y - hs/2 });

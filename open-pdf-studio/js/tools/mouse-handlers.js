@@ -27,7 +27,8 @@ function isModalDialogOpen() {
     '.preferences-overlay.visible, ' +
     '.text-annot-overlay.visible, ' +
     '.loading-overlay.visible, ' +
-    '.backstage-overlay.visible'
+    '.backstage-overlay.visible, ' +
+    '.sig-overlay.visible'
   );
 }
 

@@ -1,11 +1,12 @@
 import { state, selectAllOnPage, clearSelection } from '../core/state.js';
-import { undo, redo, recordBulkDelete, recordDelete } from '../core/undo-manager.js';
+import { undo, redo, recordBulkDelete, recordDelete, recordModify, recordBulkModify } from '../core/undo-manager.js';
 import { propertiesPanel, toolUndo, toolClear, zoomInBtn, zoomOutBtn } from '../ui/dom-elements.js';
 import { setTool } from './manager.js';
 import { showPreferencesDialog, hidePreferencesDialog } from '../core/preferences.js';
-import { showDocPropertiesDialog } from '../ui/chrome/dialogs.js';
-import { copyAnnotation, copyAnnotations, pasteFromClipboard } from '../annotations/clipboard.js';
+import { showDocPropertiesDialog, showNewDocDialog } from '../ui/chrome/dialogs.js';
+import { copyAnnotation, copyAnnotations } from '../annotations/clipboard.js';
 import { redrawAnnotations, redrawContinuous } from '../annotations/rendering.js';
+import { applyMove } from '../annotations/transforms.js';
 import { openPDFFile } from '../pdf/loader.js';
 import { savePDF, savePDFAs } from '../pdf/saver.js';
 import { toggleAnnotationsListPanel } from '../ui/panels/annotations-list.js';
@@ -51,7 +52,10 @@ export function handleKeydown(e) {
   }
 
   // File shortcuts
-  if (ctrl && e.key === 'o') {
+  if (ctrl && e.key === 'n') {
+    e.preventDefault();
+    showNewDocDialog();
+  } else if (ctrl && e.key === 'o') {
     e.preventDefault();
     openPDFFile();
   } else if (ctrl && shift && e.key === 'S') {
@@ -119,7 +123,38 @@ export function handleKeydown(e) {
         redrawAnnotations();
       }
     }
-  } else if (ctrl && shift && e.key === 'C') {
+  }
+  // Arrow keys: nudge selected annotations (skip when Ctrl held)
+  else if (!ctrl && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+    const hasSelection = state.selectedAnnotations.length > 0 || state.selectedAnnotation;
+    if (hasSelection && state.pdfDoc) {
+      e.preventDefault();
+      const step = (shift ? 10 : 1) / (state.scale || 1);
+      let dx = 0, dy = 0;
+      if (e.key === 'ArrowLeft') dx = -step;
+      else if (e.key === 'ArrowRight') dx = step;
+      else if (e.key === 'ArrowUp') dy = -step;
+      else if (e.key === 'ArrowDown') dy = step;
+
+      if (state.selectedAnnotations.length > 1) {
+        const originals = state.selectedAnnotations.map(a => ({ ...a }));
+        for (const ann of state.selectedAnnotations) applyMove(ann, dx, dy);
+        recordBulkModify(state.selectedAnnotations, originals);
+      } else if (state.selectedAnnotation) {
+        const original = { ...state.selectedAnnotation };
+        applyMove(state.selectedAnnotation, dx, dy);
+        recordModify(state.selectedAnnotation.id, original, state.selectedAnnotation);
+      }
+
+      if (state.viewMode === 'continuous') {
+        redrawContinuous();
+      } else {
+        redrawAnnotations();
+      }
+    }
+  }
+
+  else if (ctrl && shift && e.key === 'C') {
     e.preventDefault();
     if (toolClear) toolClear.click();
   } else if (ctrl && !shift && e.key === 'c') {
@@ -133,9 +168,9 @@ export function handleKeydown(e) {
     }
     // If no annotation selected, let native copy handle text selection
   } else if (ctrl && !shift && e.key === 'v') {
-    // Paste from clipboard
-    e.preventDefault();
-    pasteFromClipboard();
+    // Don't preventDefault — let native paste event fire so handlePaste can
+    // read clipboardData.items (required on Linux/WebKitGTK where the async
+    // Clipboard API is unavailable).
   } else if (ctrl && e.key === ',') {
     e.preventDefault();
     showPreferencesDialog();
@@ -235,7 +270,43 @@ export function handleKeydown(e) {
   }
 }
 
+// Handle native paste event — works reliably on all platforms including Linux/WebKitGTK
+function handlePaste(e) {
+  if (!state.pdfDoc) return;
+  const isInInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
+  if (isInInput) return;
+
+  // Must preventDefault synchronously before any async work
+  e.preventDefault();
+
+  // Check for image data in the native clipboard event
+  const items = e.clipboardData?.items;
+  if (items) {
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const blob = item.getAsFile();
+        if (blob) {
+          import('../annotations/clipboard.js').then(({ pasteImageFromBlob }) => {
+            pasteImageFromBlob(blob);
+          });
+        }
+        return;
+      }
+    }
+  }
+
+  // No image found — paste from internal annotation clipboard
+  import('../annotations/clipboard.js').then(({ pasteAnnotation, pasteAnnotations }) => {
+    if (state.clipboardAnnotations && state.clipboardAnnotations.length > 1) {
+      pasteAnnotations();
+    } else if (state.clipboardAnnotation) {
+      pasteAnnotation();
+    }
+  });
+}
+
 // Initialize keyboard handlers
 export function initKeyboardHandlers() {
   document.addEventListener('keydown', handleKeydown);
+  document.addEventListener('paste', handlePaste);
 }

@@ -106,18 +106,115 @@ export async function renderPage(pageNum) {
   updateAllStatus();
 }
 
-// Render all pages (continuous mode)
+// Track which pages have been rendered in continuous mode
+const _renderedPages = new Set();
+let _continuousObserver = null;
+
+// Render a single page inside its wrapper (used by lazy rendering)
+async function renderContinuousPage(pageNum) {
+  if (_renderedPages.has(pageNum)) return;
+  _renderedPages.add(pageNum);
+
+  const pageWrapper = document.querySelector(`.page-wrapper[data-page="${pageNum}"]`);
+  if (!pageWrapper) return;
+
+  const canvasContainer = pageWrapper.querySelector('.canvas-container-cont');
+  if (!canvasContainer) return;
+
+  const page = await state.pdfDoc.getPage(pageNum);
+  const extraRotation = getPageRotation(pageNum);
+  const vpOpts = { scale: state.scale };
+  if (extraRotation) {
+    vpOpts.rotation = (page.rotate + extraRotation) % 360;
+  }
+  const viewport = page.getViewport(vpOpts);
+
+  canvasContainer.style.setProperty('--scale-factor', viewport.scale);
+  canvasContainer.style.setProperty('--total-scale-factor', viewport.scale);
+
+  // Create PDF canvas
+  const pdfCanvasEl = document.createElement('canvas');
+  pdfCanvasEl.className = 'pdf-canvas';
+  pdfCanvasEl.width = viewport.width;
+  pdfCanvasEl.height = viewport.height;
+  pdfCanvasEl.dataset.page = pageNum;
+  pdfCanvasEl.style.display = 'block';
+  pdfCanvasEl.style.background = 'white';
+
+  // Create annotation canvas
+  const annotationCanvasEl = document.createElement('canvas');
+  annotationCanvasEl.className = 'annotation-canvas';
+  annotationCanvasEl.width = viewport.width;
+  annotationCanvasEl.height = viewport.height;
+  annotationCanvasEl.dataset.page = pageNum;
+  annotationCanvasEl.style.position = 'absolute';
+  annotationCanvasEl.style.top = '0';
+  annotationCanvasEl.style.left = '0';
+  annotationCanvasEl.style.cursor = getCursorForTool();
+
+  canvasContainer.appendChild(pdfCanvasEl);
+  canvasContainer.appendChild(annotationCanvasEl);
+
+  // Render PDF page
+  const pdfCtxEl = pdfCanvasEl.getContext('2d');
+  try {
+    await page.render({
+      canvasContext: pdfCtxEl,
+      viewport: viewport,
+      annotationMode: 0
+    }).promise;
+  } catch (error) {
+    console.error(`Error rendering page ${pageNum}:`, error);
+  }
+
+  // Create text layer
+  try {
+    await createTextLayer(page, viewport, canvasContainer, pageNum);
+  } catch (e) {
+    console.warn(`Failed to create text layer for page ${pageNum}:`, e);
+  }
+
+  // Create link layer
+  try {
+    await createLinkLayer(page, viewport, canvasContainer, pageNum);
+  } catch (e) {
+    console.warn(`Failed to create link layer for page ${pageNum}:`, e);
+  }
+
+  // Create form layer
+  try {
+    await createFormLayer(page, viewport, canvasContainer, pageNum);
+  } catch (e) {
+    console.warn(`Failed to create form layer for page ${pageNum}:`, e);
+  }
+
+  // Render annotations
+  const annotationCtxEl = annotationCanvasEl.getContext('2d');
+  renderAnnotationsForPage(annotationCtxEl, pageNum, viewport.width, viewport.height);
+
+  // Setup mouse events
+  setupContinuousPageEvents(annotationCanvasEl, pageNum);
+}
+
+// Render all pages (continuous mode) — creates placeholders, lazily renders visible pages
 export async function renderContinuous() {
   if (!state.pdfDoc) return;
 
-  const continuousContainer = document.getElementById('continuous-container');
-  continuousContainer.innerHTML = ''; // Clear existing content
+  // Cleanup previous observer
+  if (_continuousObserver) {
+    _continuousObserver.disconnect();
+    _continuousObserver = null;
+  }
+  _renderedPages.clear();
 
-  // Clear all text, link, and form layers before re-render
+  const continuousContainer = document.getElementById('continuous-container');
+  continuousContainer.innerHTML = '';
+
   clearTextLayers();
   clearLinkLayers();
   clearFormLayers();
 
+  // First pass: create all page wrappers with correct dimensions (no rendering)
   for (let pageNum = 1; pageNum <= state.pdfDoc.numPages; pageNum++) {
     const page = await state.pdfDoc.getPage(pageNum);
     const extraRotation = getPageRotation(pageNum);
@@ -127,90 +224,27 @@ export async function renderContinuous() {
     }
     const viewport = page.getViewport(vpOpts);
 
-    // Create wrapper for each page
     const pageWrapper = document.createElement('div');
     pageWrapper.className = 'page-wrapper';
     pageWrapper.dataset.page = pageNum;
 
-    // Add page number label
     const pageLabel = document.createElement('div');
     pageLabel.className = 'page-number-label';
     pageLabel.textContent = `Page ${pageNum}`;
     pageWrapper.appendChild(pageLabel);
 
-    // Create container for canvas layers
+    // Placeholder container with correct dimensions
     const canvasContainer = document.createElement('div');
+    canvasContainer.className = 'canvas-container-cont';
     canvasContainer.style.position = 'relative';
     canvasContainer.style.display = 'inline-block';
-    canvasContainer.style.setProperty('--scale-factor', viewport.scale);
-    canvasContainer.style.setProperty('--total-scale-factor', viewport.scale);
+    canvasContainer.style.width = `${viewport.width}px`;
+    canvasContainer.style.height = `${viewport.height}px`;
+    canvasContainer.style.background = 'white';
+    canvasContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
 
-    // Create PDF canvas
-    const pdfCanvasEl = document.createElement('canvas');
-    pdfCanvasEl.className = 'pdf-canvas';
-    pdfCanvasEl.width = viewport.width;
-    pdfCanvasEl.height = viewport.height;
-    pdfCanvasEl.dataset.page = pageNum;
-    pdfCanvasEl.style.display = 'block';
-    pdfCanvasEl.style.background = 'white';
-    pdfCanvasEl.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
-
-    // Create annotation canvas
-    const annotationCanvasEl = document.createElement('canvas');
-    annotationCanvasEl.className = 'annotation-canvas';
-    annotationCanvasEl.width = viewport.width;
-    annotationCanvasEl.height = viewport.height;
-    annotationCanvasEl.dataset.page = pageNum;
-    annotationCanvasEl.style.position = 'absolute';
-    annotationCanvasEl.style.top = '0';
-    annotationCanvasEl.style.left = '0';
-    annotationCanvasEl.style.cursor = getCursorForTool();
-
-    // Append canvases to container
-    canvasContainer.appendChild(pdfCanvasEl);
-    canvasContainer.appendChild(annotationCanvasEl);
     pageWrapper.appendChild(canvasContainer);
     continuousContainer.appendChild(pageWrapper);
-
-    // Render PDF page AFTER adding to DOM
-    const pdfCtxEl = pdfCanvasEl.getContext('2d');
-    try {
-      await page.render({
-        canvasContext: pdfCtxEl,
-        viewport: viewport,
-        annotationMode: 0 // DISABLE - annotations are rendered by the app's overlay canvas
-      }).promise;
-    } catch (error) {
-      console.error(`Error rendering page ${pageNum}:`, error);
-    }
-
-    // Create text layer for text selection (inserted between PDF canvas and annotation canvas)
-    try {
-      await createTextLayer(page, viewport, canvasContainer, pageNum);
-    } catch (e) {
-      console.warn(`Failed to create text layer for page ${pageNum}:`, e);
-    }
-
-    // Create link layer for clickable links
-    try {
-      await createLinkLayer(page, viewport, canvasContainer, pageNum);
-    } catch (e) {
-      console.warn(`Failed to create link layer for page ${pageNum}:`, e);
-    }
-
-    // Create form layer for interactive form fields
-    try {
-      await createFormLayer(page, viewport, canvasContainer, pageNum);
-    } catch (e) {
-      console.warn(`Failed to create form layer for page ${pageNum}:`, e);
-    }
-
-    // Render annotations for this page
-    const annotationCtxEl = annotationCanvasEl.getContext('2d');
-    renderAnnotationsForPage(annotationCtxEl, pageNum, viewport.width, viewport.height);
-
-    // Add event listeners for annotations (using closure to capture pageNum)
-    setupContinuousPageEvents(annotationCanvasEl, pageNum);
   }
 
   // Update page info (disable input in continuous mode)
@@ -220,9 +254,28 @@ export async function renderContinuous() {
   pageTotal.textContent = state.pdfDoc.numPages;
   prevPageBtn.disabled = true;
   nextPageBtn.disabled = true;
-
-  // Update status bar
   updateAllStatus();
+
+  // Setup IntersectionObserver to lazily render pages as they scroll into view
+  const scrollContainer = document.getElementById('pdf-container');
+  _continuousObserver = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) {
+        const pageNum = parseInt(entry.target.dataset.page, 10);
+        if (pageNum && !_renderedPages.has(pageNum)) {
+          renderContinuousPage(pageNum);
+        }
+      }
+    }
+  }, {
+    root: scrollContainer,
+    rootMargin: '200px 0px'
+  });
+
+  // Observe all page wrappers
+  continuousContainer.querySelectorAll('.page-wrapper').forEach(wrapper => {
+    _continuousObserver.observe(wrapper);
+  });
 }
 
 // Setup mouse events for continuous mode pages
@@ -275,6 +328,10 @@ export async function goToPage(pageNum) {
 
   if (state.viewMode === 'single') {
     await renderPage(pageNum);
+    const pdfContainer = document.getElementById('pdf-container');
+    if (pdfContainer) {
+      pdfContainer.scrollTop = 0;
+    }
   } else {
     // Scroll to page in continuous mode
     const pageWrapper = document.querySelector(`.page-wrapper[data-page="${pageNum}"]`);

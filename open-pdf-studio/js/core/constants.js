@@ -32,7 +32,7 @@ export function getSystemUsername() {
 // Default application preferences
 export const DEFAULT_PREFERENCES = {
   // Theme
-  theme: 'dark',
+  theme: 'system',
 
   // General
   authorName: getSystemUsername(),
